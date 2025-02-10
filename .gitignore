@@ -1,0 +1,6 @@
+.vscode/
+.venv/
+instance/
+
+*cache*/
+test/
