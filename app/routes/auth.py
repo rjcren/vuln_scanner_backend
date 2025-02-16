@@ -1,7 +1,7 @@
 '''用户认证路由'''
 from flask import Blueprint, request, jsonify
 from app.services.auth import AuthService
-from app.utils.security import generate_jwt
+from app.utils.security import SecurityUtils
 from app.utils.exceptions import InvalidCredentials, UserAlreadyExists
 
 auth_bp = Blueprint('auth', __name__)
@@ -33,7 +33,7 @@ def login():
         password = data.get('password')
 
         user = AuthService.authenticate_user(username, password)
-        token = generate_jwt(user.user_id, user.role.role_name)
+        token = SecurityUtils.generate_jwt(user.user_id, user.role.role_name)
         return jsonify({
             "token": token,
             "expires_in": 3600

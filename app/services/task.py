@@ -1,7 +1,7 @@
 '''任务管理'''
 from app.models import ScanTask, TaskLog
 from app.extensions import db
-from app.tasks.scan_tasks import run_scan
+from app.tasks.scan_tasks import run_scan_task
 from datetime import datetime
 
 class TaskService:
@@ -20,7 +20,7 @@ class TaskService:
         TaskService._log_task(task.task_id, "任务已创建")
 
         # 异步启动扫描
-        run_scan.delay(task.task_id)
+        run_scan_task.delay(task.task_id)
         return task
 
     @staticmethod

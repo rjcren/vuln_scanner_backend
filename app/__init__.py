@@ -1,8 +1,8 @@
 from flask import Flask
-from app.config import Config
 from app.extensions import db, migrate, celery
+from app.config import BaseConfig  # 直接导入具体配置类
 
-def create_app(config_class=Config):
+def create_app(config_class=BaseConfig):  # 设置默认配置
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -15,8 +15,13 @@ def create_app(config_class=Config):
     from app.routes.auth import auth_bp
     from app.routes.tasks import tasks_bp
     from app.routes.vuls import vuls_bp
+    from app.routes.admin import admin_bp
+    from app.routes.feedback import feedback_bp
+
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(tasks_bp, url_prefix="/api/v1/tasks")
     app.register_blueprint(vuls_bp, url_prefix="/api/v1/vuls")
+    app.register_blueprint(admin_bp, url_prefix="/api/v1/admin")
+    app.register_blueprint(feedback_bp, url_prefix="/api/v1/feedback")
 
     return app

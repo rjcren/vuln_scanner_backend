@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.services.task import TaskService
 from app.utils.decorators import jwt_required, roles_required
+from app.models.scan_task import ScanTask
 
 tasks_bp = Blueprint('tasks', __name__)
 
@@ -44,3 +45,9 @@ def get_tasks():
         }), 200
     except Exception as e:
         return jsonify({"error": "获取任务失败"}), 500
+
+@tasks_bp.route('/<int:task_id>/start', methods=['POST'])
+def start_scan(task_id):
+    task = ScanTask.query.get_or_404(task_id)
+    task.start_scan()
+    return jsonify({"status": "scan started"}), 202

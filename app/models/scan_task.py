@@ -17,3 +17,8 @@ class ScanTask(db.Model):
 
     def __repr__(self):
         return f'<ScanTask {self.task_id}>'
+
+    def start_scan(self):
+        """启动扫描（供外部调用）"""
+        from app.services.scanner import ScanService
+        ScanService.execute_task(self.id)

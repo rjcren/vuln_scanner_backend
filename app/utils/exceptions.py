@@ -19,3 +19,18 @@ class ScanExecutionError(AppException):
     """扫描执行异常"""
     def __init__(self, message="扫描任务执行失败"):
         super().__init__(message, 500)
+
+class InvalidToken(AppException):
+    '''无效令牌异常'''
+    def __init__(self, message="Invalid token"):
+        super().__init__(message, 401)
+
+class TokenGenerationError(AppException):
+    '''令牌生成异常'''
+    def __init__(self, message="令牌生成异常"):
+        super().__init__(message, 500)
+
+class ThreatIntelSyncError(AppException):
+    '''威胁情报同步异常'''
+    def __init__(self, message="威胁情报同步异常"):
+        super().__init__(message, 500)

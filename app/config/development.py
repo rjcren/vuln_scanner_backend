@@ -1,7 +1,0 @@
-# 数据库
-HOSTNAME = "127.0.0.1"
-POST = 3306
-USERNAME = "root"
-PASSWORD = "root"
-DATABASE = "test"
-SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{USERNAME}:{PASSWORD}@{HOSTNAME}:{POST}/{DATABASE}?charset=utf8'

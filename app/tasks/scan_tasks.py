@@ -3,7 +3,7 @@ from datetime import datetime
 from celery import shared_task
 from app.extensions import db, celery
 from app.models import ScanTask, Vulnerability, TaskLog
-from app.services.scanner import ScannerService
+from app.utils.scanner import ScannerEngine
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -27,14 +27,14 @@ def run_scan_task(self, task_id: int):
 
         # 调用扫描引擎
         if task.scan_type == "nmap":
-            vulnerabilities = ScannerService.run_nmap_scan(task.target_url)
+            vulnerabilities = ScannerEngine.run_nmap(task.target_url)
         elif task.scan_type == "zap":
-            vulnerabilities = ScannerService.run_zap_scan(task.target_url)
+            vulnerabilities = ScannerEngine.run_zap(task.target_url)
         else:
             raise ValueError(f"不支持的扫描类型: {task.scan_type}")
 
         # 保存漏洞结果
-        ScannerService.save_vulnerabilities(task_id, vulnerabilities)
+        ScannerEngine.save_vulnerabilities(task_id, vulnerabilities)
 
         # 标记任务完成
         task.status = "completed"
@@ -49,3 +49,8 @@ def run_scan_task(self, task_id: int):
         db.session.commit()
         TaskLog.log(task_id, f"扫描失败: {str(e)}")
         raise self.retry(exc=e, countdown=60)
+
+@celery.task
+def async_scan_task(task_id):
+    from app.services.scanner import ScanService
+    ScanService.execute_task(task_id)
