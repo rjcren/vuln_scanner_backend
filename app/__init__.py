@@ -1,10 +1,10 @@
 from flask import Flask
 from app.extensions import db, migrate, celery
-from app.config import BaseConfig  # 直接导入具体配置类
+import app.config as config
 
-def create_app(config_class=BaseConfig):  # 设置默认配置
+def create_app():
     app = Flask(__name__)
-    app.config.from_object(config_class)
+    app.config.from_object(config)
 
     # 初始化扩展
     db.init_app(app)

@@ -1,4 +1,7 @@
 '''自定义异常类'''
+from flask import jsonify
+from werkzeug.exceptions import HTTPException
+
 class AppException(Exception):
     """应用基础异常"""
     def __init__(self, message: str, code: int = 400):
@@ -34,3 +37,30 @@ class ThreatIntelSyncError(AppException):
     '''威胁情报同步异常'''
     def __init__(self, message="威胁情报同步异常"):
         super().__init__(message, 500)
+
+class ServiceError(HTTPException):
+    """服务层异常基类"""
+    def __init__(self, message="服务器内部错误"):
+        super().__init__(message, 500)
+
+class Unauthorized(ServiceError):
+    def __init__(self, message="需要身份验证"):
+        super().__init__(message)
+        self.code = 401
+
+class Forbidden(ServiceError):
+    def __init__(self, message="没有操作权限"):
+        super().__init__(message)
+        self.code = 403
+
+class NotFound(ServiceError):
+    def __init__(self, message="资源不存在"):
+        super().__init__(message)
+        self.code = 404
+
+# 全局异常处理器（在app初始化时注册）
+def handle_service_error(e):
+    return jsonify({
+        "error": e.description,
+        "code": e.code
+    }), e.code

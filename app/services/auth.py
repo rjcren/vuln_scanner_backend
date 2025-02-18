@@ -1,5 +1,4 @@
-'''认证逻辑（JWT生成/验证）'''
-from werkzeug.security import generate_password_hash, check_password_hash
+'''认证逻辑'''
 from app.models import User, Role
 from app.extensions import db
 from app.utils.exceptions import UserAlreadyExists, InvalidCredentials
@@ -19,7 +18,7 @@ class AuthService:
         # 创建用户
         user = User(
             username=username,
-            password_hash=generate_password_hash(password),
+            password_hash=password,
             role_id=role.role_id
         )
         db.session.add(user)
@@ -29,6 +28,6 @@ class AuthService:
     @staticmethod
     def authenticate_user(username: str, password: str) -> User:
         user = User.query.filter_by(username=username).first()
-        if not user or not check_password_hash(user.password_hash, password):
+        if not user or not user.check_password_hash(user.password_hash, password):
             raise InvalidCredentials("用户名或密码错误")
         return user

@@ -1,7 +1,7 @@
 '''管理员用户/角色管理路由'''
 from flask import Blueprint, request, jsonify
 from app.services.admin import AdminService
-from app.utils.decorators import jwt_required, roles_required('admin')
+from app.utils.decorators import jwt_required, roles_required
 
 admin_bp = Blueprint('admin', __name__)
 
