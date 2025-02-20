@@ -2,7 +2,7 @@ from typing import List, Dict, Optional
 from app.extensions import db
 from app.models import Vulnerability, ScanTask
 from app.services.report import ReportService
-from app.utils.exceptions import NotFound, ServerExecutionError
+from app.utils.exceptions import NotFound, InternalServerError
 from flask import abort
 import logging
 

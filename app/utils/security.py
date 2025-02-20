@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from flask import current_app, abort
-from app.utils.exceptions import InvalidToken, ServerExecutionError
+from app.utils.exceptions import InvalidToken, InternalServerError
 import jwt
 
 class SecurityUtils:
@@ -29,13 +29,13 @@ class SecurityUtils:
             return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm="HS256")
         except jwt.PyJWTError as e:
             current_app.logger.error(f"JWT生成失败: {str(e)}")
-            abort(ServerExecutionError("令牌生成失败，请检查服务器配置"))
+            abort(InternalServerError("令牌生成失败，请检查服务器配置"))
         except KeyError as e:
             current_app.logger.error(f"缺少关键配置项: {str(e)}")
-            abort(ServerExecutionError("服务器配置不完整"))
+            abort(InternalServerError("服务器配置不完整"))
         except Exception as e:
             current_app.logger.error(f"未知错误: {str(e)}")
-            abort(ServerExecutionError("系统内部错误"))
+            abort(InternalServerError("系统内部错误"))
 
     @staticmethod
     def decode_jwt(token: str) -> dict:

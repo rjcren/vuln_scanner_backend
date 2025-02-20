@@ -4,6 +4,8 @@ from app.extensions import celery
 from app.models import ThreatIntel
 from app.services.threat_intel import ThreatIntelService
 from app.utils.logger import setup_logger
+from app.utils.exceptions import InternalServerError
+from flask import abort
 
 logger = setup_logger(__name__)
 
@@ -25,4 +27,4 @@ def sync_threat_intel_task():
         logger.info(f"成功同步 {len(new_records)} 条威胁情报")
     except Exception as e:
         logger.error(f"威胁情报同步失败: {str(e)}")
-        raise
+        abort(InternalServerError("威胁情报同步失败"))

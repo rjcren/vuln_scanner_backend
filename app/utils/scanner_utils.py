@@ -1,7 +1,7 @@
 '''扫描工具封装'''
 import subprocess
 import xml.etree.ElementTree as ET
-from app.utils.exceptions import ServerExecutionError
+from app.utils.exceptions import InternalServerError
 from flask import abort
 
 class ScannerUtils:
@@ -19,7 +19,7 @@ class ScannerUtils:
             )
             return ScannerUtils._parse_nmap_xml(result.stdout)
         except subprocess.CalledProcessError as e:
-            abort(ServerExecutionError(f"Nmap扫描失败: {e.stderr}"))
+            abort(InternalServerError(f"Nmap扫描失败: {e.stderr}"))
 
     @staticmethod
     def _parse_nmap_xml(xml_data: str) -> dict:

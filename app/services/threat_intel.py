@@ -5,7 +5,7 @@ from typing import List, Dict
 from app.extensions import db
 from app.models.threat_intel import ThreatIntel
 from app.utils.logger import setup_logger
-from app.utils.exceptions import ServerExecutionError
+from app.utils.exceptions import InternalServerError
 
 logger = setup_logger(__name__)
 
@@ -40,7 +40,7 @@ class ThreatIntelService:
 
         except Exception as e:
             logger.error(f"威胁情报同步失败: {str(e)}")
-            abort(ServerExecutionError(f"CVE数据同步失败: {str(e)}"))
+            abort(InternalServerError(f"CVE数据同步失败: {str(e)}"))
 
     @classmethod
     def _fetch_cve_data(cls, start_date: datetime) -> Dict:
@@ -58,10 +58,10 @@ class ThreatIntelService:
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"CVE API请求失败: {str(e)}")
-            raise
+            abort(InternalServerError("CVE API请求失败"))
         except ValueError as e:
             logger.error(f"无效的API响应: {str(e)}")
-            raise
+            abort(InternalServerError("无效的API响应"))
 
     @classmethod
     def _parse_cve_response(cls, response_data: Dict) -> List[Dict]:

@@ -1,10 +1,7 @@
 from typing import List, Dict, Optional
 from app.extensions import db
 from app.models import User, Role
-from app.utils.exceptions import (
-    UserAlreadyExists, NotFound, Forbidden,
-    Conflict, BadRequest, InternalServerError
-)
+from app.utils.exceptions import *
 from app.utils.decorators import roles_required
 from flask import abort
 import logging

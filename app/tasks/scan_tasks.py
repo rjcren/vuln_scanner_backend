@@ -5,6 +5,7 @@ from app.extensions import db, celery
 from app.models import ScanTask, Vulnerability, TaskLog
 from app.utils.scanner import ScannerEngine
 from app.utils.logger import setup_logger
+from flask import abort
 
 logger = setup_logger(__name__)
 
@@ -31,7 +32,7 @@ def run_scan_task(self, task_id: int):
         elif task.scan_type == "zap":
             vulnerabilities = ScannerEngine.run_zap(task.target_url)
         else:
-            raise ValueError(f"不支持的扫描类型: {task.scan_type}")
+            abort(ValueError(f"不支持的扫描类型: {task.scan_type}"))
 
         # 保存漏洞结果
         ScannerEngine.save_vulnerabilities(task_id, vulnerabilities)

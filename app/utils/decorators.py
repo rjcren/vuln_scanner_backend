@@ -52,7 +52,7 @@ def roles_required(*required_roles):
             current_role = g.current_user.get("role")
             if current_role not in required_roles:
                 logger.warning(f"角色权限不足: {current_role}")
-                raise Forbidden("没有操作权限")
+                abort(Forbidden("没有操作权限"))
             return f(*args, **kwargs)
         return wrapped_function
     return decorator

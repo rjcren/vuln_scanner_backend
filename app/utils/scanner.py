@@ -1,9 +1,10 @@
 """扫描引擎工具类 - 负责底层工具调用和结果解析"""
 import subprocess
-import importlib.util
+from flask import abort
 from pathlib import Path
 from typing import Dict, List
 import xml.etree.ElementTree as ET
+from app.utils.exceptions import InternalServerError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,10 +29,10 @@ class ScannerEngine:
             return NmapParser.parse(result.stdout)
         except subprocess.CalledProcessError as e:
             logger.error(f"Nmap扫描失败: {e.stderr}")
-            raise
+            abort(InternalServerError("Nmap扫描失败"))
         except subprocess.TimeoutExpired:
             logger.error("Nmap扫描超时")
-            raise
+            abort(InternalServerError("Nmap扫描超时"))
 
     @staticmethod
     def run_zap(target_url: str) -> List[Dict]:

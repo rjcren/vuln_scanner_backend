@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.services.auth import AuthService
 from app.utils.security import SecurityUtils
-from app.utils.exceptions import InvalidCredentials, UserAlreadyExists
+from app.utils.exceptions import InvalidCredentials, AppException
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -20,7 +20,7 @@ def register():
             "username": user.username,
             "role": user.role.role_name
         }), 201
-    except UserAlreadyExists as e:
+    except AppException as e:
         return jsonify({"error": str(e)}), 409
     except Exception as e:
         return jsonify({"error": "内部服务器错误"}), 500
