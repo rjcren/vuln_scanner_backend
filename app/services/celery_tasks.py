@@ -3,6 +3,7 @@ from app.extensions import celery
 from app.services.scanner import ScannerService
 from app.models import ScanTask
 from app.extensions import db
+from datetime import datetime
 
 @celery.task(bind=True, max_retries=3)
 def run_scan(self, task_id: int):
@@ -18,7 +19,7 @@ def run_scan(self, task_id: int):
 
         # 更新任务状态
         task.status = "completed"
-        task.finished_at = datetime.utcnow()
+        task.finished_at = datetime.now()
         db.session.commit()
 
     except Exception as e:
