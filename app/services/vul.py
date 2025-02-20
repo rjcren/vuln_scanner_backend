@@ -2,7 +2,8 @@ from typing import List, Dict, Optional
 from app.extensions import db
 from app.models import Vulnerability, ScanTask
 from app.services.report import ReportService
-from app.utils.exceptions import NotFound, ServiceError
+from app.utils.exceptions import NotFound, ServerExecutionError
+from flask import abort
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class VulService:
 
             vulnerabilities = query.all()
             if not vulnerabilities:
-                raise NotFound("未找到相关漏洞记录")
+                abort(NotFound("未找到相关漏洞记录"))
 
             return [{
                 "vul_id": vul.vul_id,
@@ -30,7 +31,7 @@ class VulService:
             } for vul in vulnerabilities]
         except Exception as e:
             logger.error(f"查询漏洞失败: {str(e)}")
-            raise ServiceError("获取漏洞数据失败")
+            abort(ServiceError("获取漏洞数据失败"))
 
     @staticmethod
     def generate_report(task_id: int, format: str = "pdf") -> str:
@@ -49,10 +50,10 @@ class VulService:
                 )
                 return report_path
             else:
-                raise ValueError("不支持的报告格式")
+                abort(ValueError("不支持的报告格式"))
         except Exception as e:
             logger.error(f"生成报告失败: {str(e)}")
-            raise ServiceError("报告生成失败")
+            abort(ServiceError("报告生成失败"))
 
     @staticmethod
     def get_fix_suggestions(vul_id: int) -> Dict:
@@ -66,4 +67,4 @@ class VulService:
             }
         except Exception as e:
             logger.error(f"获取修复建议失败: {str(e)}")
-            raise ServiceError("无法获取修复建议")
+            abort(ServiceError("无法获取修复建议"))

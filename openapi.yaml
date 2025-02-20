@@ -1,0 +1,315 @@
+openapi: 3.0.0
+info:
+  title: 漏洞扫描系统 API
+  version: 1.0.0
+  description: 提供漏洞扫描、用户管理、报告生成等功能
+servers:
+  - url: http://localhost:5000/api/v1
+    description: 本地开发环境
+
+paths:
+  # ========================
+  # 认证模块
+  # ========================
+  /auth/register:
+    post:
+      summary: 用户注册
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: testuser
+                password:
+                  type: string
+                  example: password123
+                role:
+                  type: string
+                  enum: [user, admin]
+                  default: user
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 1
+                  username:
+                    type: string
+                    example: testuser
+                  role:
+                    type: string
+                    example: user
+        '409':
+          description: 用户名已存在
+        '500':
+          description: 服务器内部错误
+
+  /auth/login:
+    post:
+      summary: 用户登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: testuser
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expires_in:
+                    type: integer
+                    example: 3600
+        '401':
+          description: 用户名或密码错误
+        '500':
+          description: 服务器内部错误
+
+  # ========================
+  # 扫描任务模块
+  # ========================
+  /tasks:
+    post:
+      summary: 创建扫描任务
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_url:
+                  type: string
+                  example: http://example.com
+                scan_type:
+                  type: string
+                  enum: [quick, full]
+                  default: quick
+      responses:
+        '202':
+          description: 任务已提交
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: integer
+                    example: 1
+                  status:
+                    type: string
+                    example: pending
+        '400':
+          description: 无效的请求参数
+        '401':
+          description: 未授权访问
+        '500':
+          description: 服务器内部错误
+
+  /tasks/{task_id}:
+    get:
+      summary: 获取任务详情
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 任务详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: integer
+                    example: 1
+                  target_url:
+                    type: string
+                    example: http://example.com
+                  status:
+                    type: string
+                    example: completed
+                  vulnerabilities_count:
+                    type: integer
+                    example: 3
+        '404':
+          description: 任务不存在
+        '401':
+          description: 未授权访问
+
+  # ========================
+  # 漏洞管理模块
+  # ========================
+  /tasks/{task_id}/vuls:
+    get:
+      summary: 获取任务漏洞列表
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [critical, high, medium, low]
+      responses:
+        '200':
+          description: 漏洞列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vuls:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        vul_id:
+                          type: integer
+                          example: 1
+                        cve_id:
+                          type: string
+                          example: CVE-2023-1234
+                        severity:
+                          type: string
+                          example: high
+                        description:
+                          type: string
+                          example: SQL注入漏洞
+        '404':
+          description: 任务不存在
+        '401':
+          description: 未授权访问
+
+  /reports:
+    post:
+      summary: 生成漏洞报告
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_id:
+                  type: integer
+                  example: 1
+                format:
+                  type: string
+                  enum: [pdf, html]
+                  default: pdf
+      responses:
+        '200':
+          description: 报告生成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report_url:
+                    type: string
+                    example: /reports/1.pdf
+        '400':
+          description: 无效的请求参数
+        '401':
+          description: 未授权访问
+        '500':
+          description: 报告生成失败
+
+  # ========================
+  # 后台管理模块
+  # ========================
+  /admin/users:
+    get:
+      summary: 获取用户列表
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 用户列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        username:
+                          type: string
+                          example: admin
+                        role:
+                          type: string
+                          example: admin
+                  total:
+                    type: integer
+                    example: 100
+                  pages:
+                    type: integer
+                    example: 10
+                  current_page:
+                    type: integer
+                    example: 1
+        '401':
+          description: 未授权访问
+        '403':
+          description: 权限不足
+
+securitySchemes:
+  BearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
