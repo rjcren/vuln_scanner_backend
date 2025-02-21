@@ -2,8 +2,8 @@
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
-from flask import current_app, abort
-from app.utils.exceptions import InvalidToken, InternalServerError
+from flask import current_app
+from app.utils.exceptions import Unauthorized, InternalServerError
 import jwt
 
 class SecurityUtils:
@@ -29,13 +29,13 @@ class SecurityUtils:
             return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm="HS256")
         except jwt.PyJWTError as e:
             current_app.logger.error(f"JWT生成失败: {str(e)}")
-            abort(InternalServerError("令牌生成失败，请检查服务器配置"))
+            raise InternalServerError("令牌生成失败，请检查服务器配置")
         except KeyError as e:
             current_app.logger.error(f"缺少关键配置项: {str(e)}")
-            abort(InternalServerError("服务器配置不完整"))
+            raise InternalServerError("服务器配置不完整")
         except Exception as e:
             current_app.logger.error(f"未知错误: {str(e)}")
-            abort(InternalServerError("系统内部错误"))
+            raise InternalServerError("系统内部错误")
 
     @staticmethod
     def decode_jwt(token: str) -> dict:
@@ -44,7 +44,7 @@ class SecurityUtils:
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
             return payload
         except jwt.ExpiredSignatureError:
-            abort(InvalidToken("令牌已过期"))
-        except jwt.InvalidTokenError:
-            abort(InvalidToken("无效令牌"))
+            raise Unauthorized("令牌已过期")
+        except jwt.UnauthorizedError:
+            raise Unauthorized("无效令牌")
 

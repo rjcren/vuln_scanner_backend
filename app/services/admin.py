@@ -3,7 +3,6 @@ from app.extensions import db
 from app.models import User, Role
 from app.utils.exceptions import *
 from app.utils.decorators import roles_required
-from flask import abort
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,12 +21,12 @@ class AdminService:
         try:
             # 用户名冲突检查
             if User.query.filter_by(username=user_data['username']).first():
-                abort(Conflict(f"用户已被注册"))
+                raise Conflict(f"用户已被注册")
 
             # 角色有效性验证
             role_id = user_data.get('role_id', 2)
             if not Role.query.get(role_id):
-                abort(BadRequest("无效的角色ID"))
+                raise BadRequest("无效的角色ID")
 
             # 创建用户
             new_user = User(
@@ -44,7 +43,7 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"创建用户失败: {str(e)}", exc_info=True)
-            abort(InternalServerError(f"创建用户失败"))
+            raise InternalServerError(f"创建用户失败")
 
     @staticmethod
     @roles_required('admin')
@@ -52,10 +51,10 @@ class AdminService:
         """删除用户"""
         user = User.query.get(user_id)
         if not user:
-            abort(NotFound(f"用户 {user.username} 不存在"))
+            raise NotFound(f"用户 {user.username} 不存在")
 
         if user.role.role_name == 'admin':
-            abort(Forbidden("不能删除管理员账户"))
+            raise Forbidden("不能删除管理员账户")
 
         try:
             db.session.delete(user)
@@ -63,7 +62,7 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"删除用户失败: {str(e)}", exc_info=True)
-            abort(InternalServerError(f"删除用户失败"))
+            raise InternalServerError(f"删除用户失败")
 
     @staticmethod
     @roles_required('admin')
@@ -71,7 +70,7 @@ class AdminService:
         """更新用户信息"""
         user = User.query.get(user_id)
         if not user:
-            abort(NotFound("角色不存在"))
+            raise NotFound("角色不存在")
 
         try:
             # 用户名更新检查
@@ -81,7 +80,7 @@ class AdminService:
                     User.username == update_data['username']
                 ).first()
                 if existing_user:
-                    abort(Conflict("用户名已被占用"))
+                    raise Conflict("用户名已被占用")
 
                 user.username = update_data['username']
 
@@ -93,7 +92,7 @@ class AdminService:
             if 'role_id' in update_data:
                 role = Role.query.get(update_data['role_id'])
                 if not role:
-                    abort(BadRequest("无效的角色ID"))
+                    raise BadRequest("无效的角色ID")
                 user.role_id = update_data['role_id']
 
             db.session.commit()
@@ -102,7 +101,7 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             logger.error(f": {str(e)}", exc_info=True)
-            abort(InternalServerError("更新用户失败"))
+            raise InternalServerError("更新用户失败")
 
     @staticmethod
     def list_users(page: int = 1, per_page: int = 10) -> Dict:
@@ -122,7 +121,7 @@ class AdminService:
             }
         except Exception as e:
             logger.error(f"获取用户列表失败: {str(e)}", exc_info=True)
-            abort(InternalServerError("获取用户列表失败"))
+            raise InternalServerError("获取用户列表失败")
 
     # ========================
     # 角色管理功能
@@ -133,7 +132,7 @@ class AdminService:
     def create_role(role_data: Dict) -> Role:
         """创建新角色"""
         if Role.query.filter_by(role_name=role_data['role_name']).first():
-            abort(Conflict("角色名称已存在"))
+            raise Conflict("角色名称已存在")
 
         try:
             new_role = Role(
@@ -146,7 +145,7 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"创建角色失败: {str(e)}", exc_info=True)
-            abort(InternalServerError("创建角色失败"))
+            raise InternalServerError("创建角色失败")
 
     @staticmethod
     @roles_required('admin')
@@ -154,10 +153,10 @@ class AdminService:
         """更新角色信息"""
         role = Role.query.get(role_id)
         if not role:
-            abort(NotFound("角色不存在"))
+            raise NotFound("角色不存在")
 
         if role.role_name == 'admin':
-            abort(Forbidden("角色为管理员"))
+            raise Forbidden("角色为管理员")
 
         try:
             # 角色名称冲突检查
@@ -167,7 +166,7 @@ class AdminService:
                     Role.role_name == update_data['role_name']
                 ).first()
                 if existing_role:
-                    abort(Conflict("角色名称已存在"))
+                    raise Conflict("角色名称已存在")
 
                 role.role_name = update_data['role_name']
 
@@ -181,7 +180,7 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"更新角色失败: {str(e)}", exc_info=True)
-            abort(InternalServerError("更新角色失败"))
+            raise InternalServerError("更新角色失败")
 
     @staticmethod
     @roles_required('admin')
@@ -189,13 +188,13 @@ class AdminService:
         """删除角色"""
         role = Role.query.get(role_id)
         if not role:
-            abort(NotFound("角色不存在"))
+            raise NotFound("角色不存在")
 
         if role.role_name == 'admin':
-            abort(Forbidden("不能删除管理员"))
+            raise Forbidden("不能删除管理员")
 
         if User.query.filter_by(role_id=role_id).first():
-            abort(BadRequest("该角色仍有用户关联"))  # 400
+            raise BadRequest("该角色仍有用户关联")
 
         try:
             db.session.delete(role)
@@ -203,7 +202,7 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"删除角色失败: {str(e)}", exc_info=True)
-            abort(InternalServerError("删除角色失败"))
+            raise InternalServerError("删除角色失败")
 
     @staticmethod
     def list_roles() -> List[Dict]:
@@ -216,4 +215,4 @@ class AdminService:
             } for role in Role.query.all()]
         except Exception as e:
             logger.error(f"获取角色列表失败: {str(e)}", exc_info=True)
-            abort(InternalServerError("获取角色列表失败"))
+            raise InternalServerError("获取角色列表失败")

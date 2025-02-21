@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.services.auth import AuthService
 from app.utils.security import SecurityUtils
-from app.utils.exceptions import InvalidCredentials, AppException
+from app.utils.exceptions import Unauthorized, AppException
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -38,7 +38,7 @@ def login():
             "token": token,
             "expires_in": 3600
         }), 200
-    except InvalidCredentials as e:
+    except Unauthorized as e:
         return jsonify({"error": str(e)}), 401
     except Exception as e:
         return jsonify({"error": "登录失败"}), 500

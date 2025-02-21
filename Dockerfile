@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 设置环境变量
-ENV FLASK_APP=run.py
+ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 
 # 确保容器用户可写

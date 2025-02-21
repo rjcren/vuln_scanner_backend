@@ -4,8 +4,22 @@ from werkzeug.exceptions import HTTPException
 class AppException(HTTPException):
     """应用基础异常（所有自定义异常的基类）"""
     def __init__(self, message: str, code: int):
-        super().__init__(description=message, response=None)
-        self.code = code
+        self.message = message  # 明确存储消息
+        self._log_message = None
+        self.status_code  = code
+        self.response = jsonify({
+            "code": code,
+            "error": self.__class__.__name__,
+            "message": message
+        })
+        self.response.status = code
+        super().__init__(description=message, response=self.response)
+
+    def log(self, logger):
+        """统一的异常日志记录方法"""
+        if not self._log_message:  # 防止重复记录
+            self._log_message = f"[{self.__class__.__name__}] {self.message}"
+            logger.error(self._log_message, exc_info=True)
 
 # ========================
 # 4xx 客户端错误
@@ -19,16 +33,6 @@ class Unauthorized(AppException):
     """401 未认证"""
     def __init__(self, message="需要身份验证"):
         super().__init__(message, 401)
-
-class InvalidCredentials(Unauthorized):
-    """401 凭证无效"""
-    def __init__(self, message="用户名或密码错误"):
-        super().__init__(message)
-
-class InvalidToken(Unauthorized):
-    """401 令牌无效"""
-    def __init__(self, message="无效的认证令牌"):
-        super().__init__(message)
 
 class Forbidden(AppException):
     """403 禁止访问"""
@@ -73,7 +77,7 @@ class InternalServerError(AppException):
     def __init__(self, message="服务器内部错误"):
         super().__init__(message, 500)
 
-class NotImplemented(AppException):
+class NotImplementedErrorError(AppException):
     """501 未实现功能"""
     def __init__(self, message="功能未实现"):
         super().__init__(message, 501)
@@ -98,27 +102,23 @@ class GatewayTimeout(AppException):
 # ========================
 def register_error_handlers(app):
     @app.errorhandler(AppException)
-    def handle_app_exception(e):
+    def handle_general_exception(e):
         """统一处理自定义异常"""
-        return jsonify({
-            "code": e.code,
-            "error": e.__class__.__name__,
-            "message": e.description
-        }), e.code
+        e.log(app.logger)
+        return e.response, e.status_code
 
-    @app.errorhandler(HTTPException)
-    def handle_http_exception(e):
-        """覆盖默认错误处理"""
+    # 处理404特别优化
+    @app.errorhandler(404)
+    def not_found(e):
         return jsonify({
-            "code": e.code,
-            "error": e.name,
-            "message": e.description
-        }), e.code
+            "error": "Not Found",
+            "message": "请求的资源不存在"
+        }), 404
 
     @app.errorhandler(Exception)
     def handle_general_exception(e):
         """处理未捕获的异常"""
-        app.logger.error(f"Unhandled exception: {str(e)}")
+        app.logger.exception("未捕获异常")
         return jsonify({
             "code": 500,
             "error": "InternalServerError",

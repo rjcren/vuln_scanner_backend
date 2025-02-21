@@ -2,7 +2,6 @@
 import subprocess
 import xml.etree.ElementTree as ET
 from app.utils.exceptions import InternalServerError
-from flask import abort
 
 class ScannerUtils:
     @staticmethod
@@ -19,7 +18,7 @@ class ScannerUtils:
             )
             return ScannerUtils._parse_nmap_xml(result.stdout)
         except subprocess.CalledProcessError as e:
-            abort(InternalServerError(f"Nmap扫描失败: {e.stderr}"))
+            raise InternalServerError(f"Nmap扫描失败: {e.stderr}")
 
     @staticmethod
     def _parse_nmap_xml(xml_data: str) -> dict:

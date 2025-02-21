@@ -1,23 +1,18 @@
 from flask import Flask
 from app.extensions import db, migrate, celery
-from app.config import DevelopmentConfig, TestingConfig, ProductionConfig
-
+from app.config import DevelopmentConfig, TestingConfig
+from instance.production import ProductionConfig
 from app.utils.exceptions import register_error_handlers
 from app.utils.logger import setup_logger
 
-def create_app(name = "development"):
-    app = Flask(__name__, instance_relative_config=True)
-
-    app.config.from_object('app.config.BaseConfig')
-    if name == "production":
-        app.config.from_object('app.config.ProductionConfig')
-        # 加载instance目录的生产配置
-        app.config.from_pyfile('instance/production.py')
-    else:
-        app.config.from_object(f'app.config.{name.capitalize()}Config')
-
-    # 3. 加载环境变量（覆盖文件配置）
-    app.config.from_prefixed_env()
+def create_app(name):
+    app = Flask(__name__)
+    if name == "development":
+        app.config.from_object(DevelopmentConfig)
+        if name == "production":
+            app.config.from_object(ProductionConfig)
+    elif name == "testing":
+        app.config.from_object(TestingConfig)
 
     # 初始化扩展
     setup_logger(app)

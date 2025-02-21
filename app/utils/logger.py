@@ -3,32 +3,28 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 
-def setup_logger(name: str) -> logging.Logger:
-    """配置日志记录器"""
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+def setup_logger(app):
+    """统一日志配置"""
+    log_path = os.path.join(app.root_path, 'logs/app.log')
 
-    # 控制台处理器
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
+    # 确保日志目录存在
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-    # 文件处理器（每天轮转，保留7天）
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+
     file_handler = RotatingFileHandler(
-        os.path.join("logs", "app.log"),
-        maxBytes=10*1024*1024,  # 10MB
-        backupCount=7,
-        encoding="utf-8"
+        log_path, maxBytes=1024 * 1024 * 10, backupCount=10, encoding='utf-8'
     )
-    file_handler.setLevel(logging.DEBUG)
-
-    # 日志格式
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    console_handler.setFormatter(formatter)
     file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.INFO)
 
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
 
-    return logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
+    app.logger.propagate = True  # 确保下游也能接收到日志

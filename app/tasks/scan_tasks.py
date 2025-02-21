@@ -4,10 +4,9 @@ from celery import shared_task
 from app.extensions import db, celery
 from app.models import ScanTask, Vulnerability, TaskLog
 from app.utils.scanner import ScannerEngine
-from app.utils.logger import setup_logger
-from flask import abort
+from app.utils.logger import logging
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 @celery.task(name="run_scan_task", bind=True, max_retries=3, acks_late=True)
 def run_scan_task(self, task_id: int):
@@ -32,7 +31,7 @@ def run_scan_task(self, task_id: int):
         elif task.scan_type == "zap":
             vulnerabilities = ScannerEngine.run_zap(task.target_url)
         else:
-            abort(ValueError(f"不支持的扫描类型: {task.scan_type}"))
+            raise ValueError(f"不支持的扫描类型: {task.scan_type}")
 
         # 保存漏洞结果
         ScannerEngine.save_vulnerabilities(task_id, vulnerabilities)

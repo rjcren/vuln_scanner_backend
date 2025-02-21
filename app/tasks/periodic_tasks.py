@@ -3,11 +3,10 @@ from celery.schedules import crontab
 from app.extensions import celery
 from app.models import ThreatIntel
 from app.services.threat_intel import ThreatIntelService
-from app.utils.logger import setup_logger
+import logging
 from app.utils.exceptions import InternalServerError
-from flask import abort
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 @celery.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
@@ -27,4 +26,4 @@ def sync_threat_intel_task():
         logger.info(f"成功同步 {len(new_records)} 条威胁情报")
     except Exception as e:
         logger.error(f"威胁情报同步失败: {str(e)}")
-        abort(InternalServerError("威胁情报同步失败"))
+        raise InternalServerError("威胁情报同步失败")

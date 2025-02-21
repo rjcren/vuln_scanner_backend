@@ -2,7 +2,6 @@
 import re
 from urllib.parse import urlparse
 from app.utils.exceptions import BadRequest
-from flask import abort
 
 class InputValidator:
     @staticmethod
@@ -24,4 +23,4 @@ class InputValidator:
         """验证扫描类型合法性"""
         allowed_types = ["quick", "full"]
         if scan_type not in allowed_types:
-            abort(BadRequest(f"无效扫描类型：{scan_type}"))
+            raise BadRequest(f"无效扫描类型：{scan_type}")
