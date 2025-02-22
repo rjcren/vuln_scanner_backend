@@ -2,7 +2,7 @@
 from typing import List
 from app.extensions import db
 from app.models import ScanTask, Vulnerability
-from app.utils.scanner import ScannerEngine
+from app.utils.scanner import ScannerUtils
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,10 +24,10 @@ class ScanService:
 
             # 执行核心扫描
             scan_results = []
-            scan_results += ScannerEngine.run_nmap(task.target_url)
+            scan_results += ScannerUtils.run_nmap(task.target_url)
 
             if task.scan_type == "web":
-                scan_results += ScannerEngine.run_zap(task.target_url)
+                scan_results += ScannerUtils.run_zap(task.target_url)
 
             # 保存结果
             ScanService._save_results(task.id, scan_results)

@@ -1,18 +1,13 @@
 from flask import Flask
 from app.extensions import db, migrate, celery
-from app.config import DevelopmentConfig, TestingConfig
-from instance.production import ProductionConfig
+from app.config import BaseConfig, TestingConfig
 from app.utils.exceptions import register_error_handlers
 from app.utils.logger import setup_logger
 
-def create_app(name):
+def create_app():
     app = Flask(__name__)
-    if name == "development":
-        app.config.from_object(DevelopmentConfig)
-        if name == "production":
-            app.config.from_object(ProductionConfig)
-    elif name == "testing":
-        app.config.from_object(TestingConfig)
+    app.config.from_object(BaseConfig)
+    app.config.from_object(TestingConfig)
 
     # 初始化扩展
     setup_logger(app)

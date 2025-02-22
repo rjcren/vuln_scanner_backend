@@ -2,8 +2,10 @@
 from flask import Blueprint, request, jsonify
 from app.services.auth import AuthService
 from app.utils.security import SecurityUtils
-from app.utils.exceptions import Unauthorized, AppException
+from app.utils.exceptions import InternalServerError
+import logging
 
+logger = logging.getLogger(__name__)
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
@@ -20,10 +22,9 @@ def register():
             "username": user.username,
             "role": user.role.role_name
         }), 201
-    except AppException as e:
-        return jsonify({"error": str(e)}), 409
     except Exception as e:
-        return jsonify({"error": "内部服务器错误"}), 500
+        logger.error(f"注册失败:{str(e)}", exc_info=True)
+        raise InternalServerError("注册失败")
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -38,7 +39,6 @@ def login():
             "token": token,
             "expires_in": 3600
         }), 200
-    except Unauthorized as e:
-        return jsonify({"error": str(e)}), 401
     except Exception as e:
-        return jsonify({"error": "登录失败"}), 500
+        logger.error(f"登录失败:{str(e)}", exc_info=True)
+        raise InternalServerError("登录失败")

@@ -1,20 +1,26 @@
 from flask import Flask
 from app.extensions import db, migrate, celery
-from app.config import DevelopmentConfig, TestingConfig, ProductionConfig
-
-from app.utils.exceptions import register_error_handlers
+from app.config import *
+from app.utils.exceptions import InternalServerError, register_error_handlers
 from app.utils.logger import setup_logger
+import os
 
-def create_app(name = "development"):
+def create_app(name:str = None):
+    if name is None:
+        name = os.getenv('FLASK_ENV', 'production')
+
     app = Flask(__name__, instance_relative_config=True)
 
-    app.config.from_object('app.config.BaseConfig')
+    app.config.from_object(BaseConfig)
     if name == "production":
-        app.config.from_object('app.config.ProductionConfig')
+        app.config.from_object(ProductionConfig)
         # 加载instance目录的生产配置
         app.config.from_pyfile('instance/production.py')
-    else:
-        app.config.from_object(f'app.config.{name.capitalize()}Config')
+    elif name == "development":
+        app.config.from_object(DevelopmentConfig)
+    elif name == "testing":
+        app.config.from_object(TestingConfig)
+    else: raise ValueError(f"无效配置名{name}")
 
     # 3. 加载环境变量（覆盖文件配置）
     app.config.from_prefixed_env()

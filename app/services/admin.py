@@ -17,7 +17,7 @@ class AdminService:
     @staticmethod
     @roles_required('admin')
     def create_user(user_data: Dict) -> User:
-        """创建新用户（返回201状态码需在控制器层处理）"""
+        """创建新用户"""
         try:
             # 用户名冲突检查
             if User.query.filter_by(username=user_data['username']).first():
@@ -100,7 +100,7 @@ class AdminService:
 
         except Exception as e:
             db.session.rollback()
-            logger.error(f": {str(e)}", exc_info=True)
+            logger.error(f"更新用户失败: {str(e)}", exc_info=True)
             raise InternalServerError("更新用户失败")
 
     @staticmethod
