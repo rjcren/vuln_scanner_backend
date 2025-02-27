@@ -1,5 +1,5 @@
 '''风险评估报告模型'''
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 class RiskReport(db.Model):
@@ -8,7 +8,7 @@ class RiskReport(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('scan_tasks.task_id'), nullable=False)
     coverage_rate = db.Column(db.Float, nullable=False)
     blind_spot = db.Column(db.Text)
-    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    generated_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
         return f'<RiskReport {self.report_id}>'

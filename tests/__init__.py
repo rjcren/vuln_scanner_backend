@@ -18,7 +18,7 @@ def create_app():
 
     # 注册蓝图
     from app.routes.auth import auth_bp
-    from app.routes.tasks import tasks_bp
+    from app.routes.task import tasks_bp
     from app.routes.vuls import vuls_bp
     from app.routes.admin import admin_bp
     from app.routes.feedback import feedback_bp

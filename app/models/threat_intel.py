@@ -1,5 +1,5 @@
 '''定时同步'''
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 class ThreatIntel(db.Model):
@@ -12,7 +12,7 @@ class ThreatIntel(db.Model):
     severity = db.Column(db.String(20))
     published_date = db.Column(db.DateTime)
     last_modified = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
         return f'<CVE {self.cve_id} ({self.severity})>'

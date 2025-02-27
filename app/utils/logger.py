@@ -6,8 +6,6 @@ import os
 def setup_logger(app):
     """统一日志配置"""
     log_path = os.path.join(app.root_path, 'logs/app.log')
-
-    # 确保日志目录存在
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
     formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')

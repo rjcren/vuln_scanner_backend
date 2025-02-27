@@ -1,14 +1,15 @@
 '''扫描任务模型'''
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
+from app.utils.exceptions import BadRequest
 
 class ScanTask(db.Model):
     __tablename__ = 'scan_tasks'
     task_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     target_url = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.Enum('pending', 'running', 'completed', 'failed'), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    status = db.Column(db.Enum('pending', 'running', 'completed', 'failed'), default='pending', nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     finished_at = db.Column(db.DateTime)
     vulnerabilities = db.relationship('Vulnerability', backref='task', lazy=True)
     logs = db.relationship('TaskLog', backref='task', lazy=True)
@@ -22,3 +23,14 @@ class ScanTask(db.Model):
         """启动扫描（供外部调用）"""
         from app.services.scanner import ScanService
         ScanService.execute_task(self.id)
+
+    def update_status(self, new_status):
+        valid_transitions = {
+            'pending': ['running'],
+            'running': ['completed', 'failed'],
+            'failed': ['pending'],
+            'completed': []
+        }
+        if new_status not in valid_transitions[self.status]:
+            raise BadRequest(f"无法从 {self.status} 转换到 {new_status}")
+        self.status = new_status

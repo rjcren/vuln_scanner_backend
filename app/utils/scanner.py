@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Dict, List
 import xml.etree.ElementTree as ET
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash
 from flask import current_app
-from app.utils.exceptions import InternalServerError
+from app.utils.exceptions import InternalServerError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,9 @@ class ScannerUtils:
     def run_nmap_scan(target: str) -> List[Dict]:
         """执行Nmap端口扫描"""
         if not ScannerUtils.validate_target(target):
-            raise ValueError("无效的扫描目标")
+            raise ValidationError("无效的扫描目标")
 
-        output_file = Path(current_app.config['SCAN_OUTPUT_DIR']) / f"nmap_{datetime.now():%Y%m%d%H%M%S}.xml"
+        output_file = Path(current_app.config['SCAN_OUTPUT_DIR']) / f"nmap_{datetime.now(timezone.utc):%Y%m%d%H%M%S}.xml"
 
         try:
             subprocess.run([

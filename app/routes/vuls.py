@@ -1,7 +1,8 @@
 '''漏洞查询与报告路由'''
 from flask import Blueprint, request, jsonify
 from app.services.vul import VulService
-from app.utils.decorators import jwt_required
+from app.utils.decorators import jwt_required, require_role
+from app.utils.exceptions import AppException
 
 vuls_bp = Blueprint('vuls', __name__)
 
@@ -18,6 +19,8 @@ def get_vulnerabilities(task_id):
                 "severity": vul.severity
             } for vul in vuls]
         }), 200
+    except AppException as e:
+        raise
     except Exception as e:
         return jsonify({"error": "获取漏洞失败"}), 500
 
@@ -31,5 +34,7 @@ def generate_report():
 
         report_url = VulService.generate_report(task_id, format)
         return jsonify({"report_url": report_url}), 200
+    except AppException as e:
+        raise
     except Exception as e:
         return jsonify({"error": "生成报告失败"}), 500

@@ -21,8 +21,7 @@ def client(test_app):
 def test_create_task(client):
     user_response = client.post('/api/v1/auth/register', json={
         'username': 'taskuser',
-        'password': 'password123',
-        'role': 'user'
+        'password': 'password123'
     })
     user_id = user_response.get_json()['user_id']
 
@@ -36,14 +35,13 @@ def test_create_task(client):
 def test_get_tasks(client):
     client.post('/api/v1/auth/register', json={
         'username': 'taskuser',
-        'password': 'password123',
-        'role': 'user'
+        'password': 'password123'
     })
     client.post('/api/v1/tasks', json={
         'target_url': 'http://example.com',
         'scan_type': 'quick'
     })
-    
+
     response = client.get('/api/v1/tasks')
     assert response.status_code == 200
     data = response.get_json()

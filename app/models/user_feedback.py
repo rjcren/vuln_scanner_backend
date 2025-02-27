@@ -1,5 +1,5 @@
 '''用户反馈模型'''
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 class UserFeedback(db.Model):
@@ -9,7 +9,7 @@ class UserFeedback(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('scan_tasks.task_id'), nullable=False)
     vul_description = db.Column(db.Text, nullable=False)
     status = db.Column(db.Enum('pending', 'resolved'), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
         return f'<UserFeedback {self.feedback_id}>'

@@ -1,22 +1,24 @@
 '''用户模型'''
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 from app.utils.security import SecurityUtils
 
 class User(db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(50), unique=True, nullable=False)
     _password_hash = db.Column("password", db.String(255), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.role_id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    role = db.Column(db.Enum('user', 'admin'), default='user', nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     tasks = db.relationship('ScanTask', backref='user', lazy=True)
     feedbacks = db.relationship('UserFeedback', backref='user', lazy=True)
 
-    def __init__(self, username, password, role_id):
+    def __init__(self, username, email, password, role='user'):
+        self.email = email
         self.username = username
         self.password = password
-        self.role_id = role_id
+        self.role = role
 
     @property
     def password(self):
@@ -33,11 +35,10 @@ class User(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "username": self.username,
+            "user_id": self.user_id,
             "email": self.email,
-            "role": self.role.role_name if self.role else None
+            "username": self.username,
         }
 
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f'<User {self.email}>'

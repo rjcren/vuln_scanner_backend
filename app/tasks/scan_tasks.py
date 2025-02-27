@@ -1,5 +1,5 @@
 '''扫描任务执行逻辑'''
-from datetime import datetime
+from datetime import datetime, timezone
 from celery import shared_task
 from app.extensions import db, celery
 from app.models import ScanTask, Vulnerability, TaskLog
@@ -19,7 +19,7 @@ def run_scan_task(self, task_id: int):
 
         # 更新任务状态为运行中
         task.status = "running"
-        task.started_at = datetime.utcnow()
+        task.started_at = datetime.now(timezone.utc)
         db.session.commit()
 
         # 记录日志
@@ -38,7 +38,7 @@ def run_scan_task(self, task_id: int):
 
         # 标记任务完成
         task.status = "completed"
-        task.finished_at = datetime.utcnow()
+        task.finished_at = datetime.now(timezone.utc)
         db.session.commit()
         TaskLog.log(task_id, "扫描成功完成")
 

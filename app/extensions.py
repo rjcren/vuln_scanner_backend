@@ -2,16 +2,24 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from celery import Celery
+import os
+import redis
+from flask_mail import Mail
+
+mail = Mail()
 
 # 数据库扩展
 db = SQLAlchemy()
 migrate = Migrate()
 
+redis_url = os.getenv('REDIS_URI', 'redis://localhost:6379/0')
+redis_client = redis.Redis.from_url(redis_url)
+
 # Celery扩展
 celery = Celery(
     __name__,
-    broker="redis://redis:6379/0",
-    backend="redis://redis:6379/1",
+    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1'),
     include=["app.tasks.scan_tasks"]
 )
 

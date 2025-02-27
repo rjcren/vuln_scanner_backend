@@ -1,16 +1,18 @@
-'''安全工具（密码哈希、JWT操作）'''
-from datetime import datetime, timedelta
+"""安全工具（密码哈希、JWT操作）"""
+
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from flask import current_app
 from app.utils.exceptions import Unauthorized, InternalServerError
 import jwt
 
+
 class SecurityUtils:
     @staticmethod
     def hash_password(password: str) -> str:
         """生成密码哈希"""
-        return generate_password_hash(password, method='scrypt')
+        return generate_password_hash(password, method="scrypt")
 
     @staticmethod
     def verify_password(hashed_password: str, plain_password: str) -> bool:
@@ -18,15 +20,19 @@ class SecurityUtils:
         return check_password_hash(hashed_password, plain_password)
 
     @staticmethod
-    def generate_jwt(user_id: int, role: str) -> str:
+    def generate_jwt(user_id: int, username: str, role: str) -> str:
         """生成JWT令牌"""
         try:
             payload = {
-                "sub": user_id,
+                "sub": str(user_id),
+                "username": username,
                 "role": role,
-                "exp": datetime.now() + timedelta(hours=current_app.config['JWT_EXPIRATION_HOURS'])
+                "iat": datetime.now(timezone.utc),
+                "exp": datetime.now(timezone.utc) + timedelta(hours=current_app.config["JWT_EXPIRATION_HOURS"]),
             }
-            return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm="HS256")
+            return jwt.encode(
+                payload, current_app.config["SECRET_KEY"], algorithm="HS256"
+            )
         except jwt.PyJWTError as e:
             current_app.logger.error(f"JWT生成失败: {str(e)}")
             raise InternalServerError("令牌生成失败，请检查服务器配置")
@@ -41,10 +47,14 @@ class SecurityUtils:
     def decode_jwt(token: str) -> dict:
         """解析JWT令牌"""
         try:
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
+            payload = jwt.decode(
+                token,
+                current_app.config["SECRET_KEY"],
+                algorithms=["HS256"],
+                options={"require": ["exp", "iat"]}
+            )
             return payload
-        except jwt.ExpiredSignatureError:
-            raise Unauthorized("令牌已过期")
-        except jwt.UnauthorizedError:
-            raise Unauthorized("无效令牌")
-
+        except jwt.ExpiredSignatureError as e:
+            raise Unauthorized(f"令牌已过期:{str(e)}")
+        except Exception as e:
+            raise Unauthorized(f"令牌解析错误: {e}")

@@ -2,7 +2,7 @@
 from app.models import ScanTask, TaskLog
 from app.extensions import db
 from app.tasks.scan_tasks import run_scan_task
-from datetime import datetime
+from datetime import datetime, timezone
 
 class TaskService:
     @staticmethod
@@ -24,8 +24,10 @@ class TaskService:
         return task
 
     @staticmethod
-    def get_user_tasks(user_id: int, page: int, size: int):
-        query = ScanTask.query.filter_by(user_id=user_id).order_by(ScanTask.created_at.desc())
+    def get_tasks(role: str, user_id: int, page: int, size: int):
+        query = None
+        if role == 'admin': query = ScanTask.query.order_by(ScanTask.created_at.desc())
+        else: query = ScanTask.query.filter_by(user_id=user_id).order_by(ScanTask.created_at.desc())
         return query.paginate(page=page, per_page=size, error_out=False)
 
     @staticmethod

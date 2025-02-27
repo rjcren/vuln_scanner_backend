@@ -22,7 +22,7 @@ def client(test_app):
 @pytest.fixture
 def test_user(test_app):
     with test_app.app_context():
-        user = User(username="testuser", password="password123", role_id=1)
+        user = User(username="testuser", password="password123")
         db.session.add(user)
         db.session.commit()
         return user

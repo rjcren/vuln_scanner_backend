@@ -20,8 +20,7 @@ def client(test_app):
 def test_create_user(client):
     response = client.post('/api/v1/auth/register', json={
         'username': 'newuser',
-        'password': 'password123',
-        'role': 'user'
+        'password': 'password123'
     })
     assert response.status_code == 201
     assert User.query.count() == 1

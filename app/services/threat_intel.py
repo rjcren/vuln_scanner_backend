@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import requests
 from typing import List, Dict
 from app.extensions import db
@@ -22,7 +22,7 @@ class ThreatIntelService:
         :return: 新增的威胁情报记录列表
         """
         lookback = lookback_hours or cls.DEFAULT_LOOKBACK_HOURS
-        start_date = datetime.utcnow() - timedelta(hours=lookback)
+        start_date = datetime.now(timezone.utc) - timedelta(hours=lookback)
 
         try:
             # 1. 获取增量数据
@@ -48,7 +48,7 @@ class ThreatIntelService:
             "startIndex": 0,
             "resultsPerPage": 2000,  # 最大允许值
             "modStartDate": start_date.strftime("%Y-%m-%dT%H:%M:%S:000 UTC-00:00"),
-            "modEndDate": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S:000 UTC-00:00")
+            "modEndDate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S:000 UTC-00:00")
         }
 
         try:
