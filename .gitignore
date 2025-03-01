@@ -3,6 +3,7 @@
 
 *cache*/
 test/
+migrations/
 
 *.log
 .env

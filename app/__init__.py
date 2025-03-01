@@ -25,7 +25,7 @@ def create_app(name:str = None):
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
     mail.init_app(app)
-    CORS(app, supports_credentials=True, origins=["http://localhost"])
+    CORS(app, supports_credentials=True, origins=["*"])
 
     app.config.from_object(BaseConfig)
     if name == "production":

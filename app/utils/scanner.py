@@ -17,7 +17,7 @@ class ScannerUtils:
     @staticmethod
     def validate_target(target: str) -> bool:
         """目标地址基础验证"""
-        return target.startswith(('http://', 'https://')) or target.count('.') >= 2
+        return target.startswith(('http://', 'https://')) or target.count('.') == 4
 
     @staticmethod
     def run_nmap_scan(target: str) -> List[Dict]:

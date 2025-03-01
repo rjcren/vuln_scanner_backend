@@ -6,15 +6,16 @@ from app.utils.exceptions import BadRequest
 class ScanTask(db.Model):
     __tablename__ = 'scan_tasks'
     task_id = db.Column(db.Integer, primary_key=True)
+    task_name = db.Column(db.String(255), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     target_url = db.Column(db.String(255), nullable=False)
+    scan_type = db.Column(db.Enum('full', 'quick'), default='quick', nullable=False)
     status = db.Column(db.Enum('pending', 'running', 'completed', 'failed'), default='pending', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     finished_at = db.Column(db.DateTime)
     vulnerabilities = db.relationship('Vulnerability', backref='task', lazy=True)
-    logs = db.relationship('TaskLog', backref='task', lazy=True)
-    fuzz_results = db.relationship('FuzzResult', backref='task', lazy=True)
     risk_reports = db.relationship('RiskReport', backref='task', lazy=True)
+    task_logs = db.relationship('TaskLog', back_populates='logs', cascade='all, delete', lazy=True)
 
     def __repr__(self):
         return f'<ScanTask {self.task_id}>'

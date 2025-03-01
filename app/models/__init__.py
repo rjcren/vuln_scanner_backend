@@ -1,8 +1,6 @@
 from .user import User
 from .scan_task import ScanTask
 from .vulnerability import Vulnerability
-from .task_log import TaskLog
-from .fuzz_result import FuzzResult
 from .user_feedback import UserFeedback
 from .risk_report import RiskReport
 from .threat_intel import ThreatIntel
@@ -12,8 +10,6 @@ __all__ = [
     "User",
     "ScanTask",
     "Vulnerability",
-    "TaskLog",
-    "FuzzResult",
     "UserFeedback",
     "RiskReport",
     "ThreatIntel",

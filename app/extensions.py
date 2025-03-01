@@ -18,8 +18,8 @@ redis_client = redis.Redis.from_url(redis_url)
 # Celery扩展
 celery = Celery(
     __name__,
-    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1'),
+    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1'),
+    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/2'),
     include=["app.tasks.scan_tasks"]
 )
 

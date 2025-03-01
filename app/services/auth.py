@@ -38,7 +38,7 @@ class AuthService:
     def authenticate_user(email: str, password: str) -> User:
         user = User.query.filter_by(email=email).first()
         if not user or not user.check_password(password):
-            raise Unauthorized("账号或密码错误")
+            raise BadRequest("账号或密码错误")
         return user
 
     @staticmethod

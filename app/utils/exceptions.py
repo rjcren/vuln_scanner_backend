@@ -164,7 +164,7 @@ def register_error_handlers(app):
     @app.errorhandler(Exception)
     def handle_general_exception(e):
         """处理未捕获的异常"""
-        app.logger.exception("未捕获异常")
+        app.logger.exception(f"未捕获异常:{e}")
         return (
             jsonify(
                 {

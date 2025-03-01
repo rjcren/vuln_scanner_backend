@@ -16,7 +16,7 @@ def submit_feedback():
         if not data or 'task_id' not in data or 'description' not in data:
             logger.error("缺少必要参数", exc_info=True)
             raise BadRequest("缺少必要参数")
-        user_id = g.current_user.user_id
+        user_id = g.current_user['user_id']
         task_id = data.get('task_id')
         description = data.get('description')
 

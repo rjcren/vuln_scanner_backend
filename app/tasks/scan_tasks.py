@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from celery import shared_task
 from app.extensions import db, celery
-from app.models import ScanTask, Vulnerability, TaskLog
+from app.models import ScanTask, Vulnerability
 from app.utils.scanner import ScannerUtils
 from app.utils.logger import logging
 
@@ -23,7 +23,6 @@ def run_scan_task(self, task_id: int):
         db.session.commit()
 
         # 记录日志
-        TaskLog.log(task_id, "开始执行扫描...")
 
         # 调用扫描引擎
         if task.scan_type == "nmap":
@@ -40,14 +39,12 @@ def run_scan_task(self, task_id: int):
         task.status = "completed"
         task.finished_at = datetime.now(timezone.utc)
         db.session.commit()
-        TaskLog.log(task_id, "扫描成功完成")
 
     except Exception as e:
         # 失败时重试
         db.session.rollback()
         task.status = "failed"
         db.session.commit()
-        TaskLog.log(task_id, f"扫描失败: {str(e)}")
         raise self.retry(exc=e, countdown=60)
 
 @celery.task
