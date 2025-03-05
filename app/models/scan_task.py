@@ -1,7 +1,8 @@
 '''扫描任务模型'''
 from datetime import datetime, timezone
 from app.extensions import db
-from app.utils.exceptions import BadRequest
+from app.utils.exceptions import BadRequest, InternalServerError
+from app.models.task_log import TaskLog
 
 class ScanTask(db.Model):
     __tablename__ = 'scan_tasks'
@@ -13,23 +14,15 @@ class ScanTask(db.Model):
     status = db.Column(db.Enum('pending', 'running', 'completed', 'failed'), default='pending', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     finished_at = db.Column(db.DateTime)
-    vulnerabilities = db.relationship('Vulnerability', backref='task', lazy=True)
-    risk_reports = db.relationship('RiskReport', backref='task', lazy=True)
-    task_logs = db.relationship('TaskLog', back_populates='logs', cascade='all, delete', lazy=True)
-
-    def __repr__(self):
-        return f'<ScanTask {self.task_id}>'
-
-    def start_scan(self):
-        """启动扫描（供外部调用）"""
-        from app.services.scanner import ScanService
-        ScanService.execute_task(self.id)
+    vulnerabilities = db.relationship('Vulnerability', back_populates='task', cascade='all, delete', lazy='select')
+    risk_reports = db.relationship('RiskReport', back_populates='task', cascade='all, delete', lazy='select')
+    task_logs = db.relationship('TaskLog', back_populates='task', cascade='all, delete', lazy='select')
 
     def update_status(self, new_status):
         valid_transitions = {
             'pending': ['running'],
             'running': ['completed', 'failed'],
-            'failed': ['pending'],
+            'failed': ['running', 'pending'],
             'completed': []
         }
         if new_status not in valid_transitions[self.status]:

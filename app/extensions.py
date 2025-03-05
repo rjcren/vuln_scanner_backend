@@ -32,5 +32,4 @@ def init_extensions(app):
     migrate.init_app(app, db)
     celery.conf.update(app.config)
     global jwt_secret
-    jwt_secret = app.config["SECRET_KEY"]
     celery.autodiscover_tasks(['app.tasks'])  # 自动发现任务

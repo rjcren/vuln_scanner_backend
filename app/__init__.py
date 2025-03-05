@@ -17,6 +17,7 @@ def create_app(name:str = None):
 
     # 手动设置
     app.config['JWT_EXPIRATION_HOURS'] = int(os.getenv('JWT_EXPIRATION_HOURS', default=1))
+    app.config["SECRET_KEY"] = os.getenv('SECRET_KEY', "test_secret_key")
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
     app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 465))
     app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'True') == 'True'

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class ThreatIntelService:
     # 官方CVE API端点（示例使用NVD API）
-    CVE_API_URL = "https://services.nvd.nist.gov/rest/json/cves/1.0"
+    CVE_API_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
     # 默认同步最近24小时的数据
     DEFAULT_LOOKBACK_HOURS = 24
 

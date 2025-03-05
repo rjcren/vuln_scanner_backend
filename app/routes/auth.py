@@ -1,6 +1,7 @@
 '''用户认证路由'''
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, g, request, jsonify
 from app.services.auth import AuthService
+from app.utils.decorators import jwt_required
 from app.utils.security import SecurityUtils
 from app.utils.exceptions import InternalServerError, AppException
 import logging
@@ -59,5 +60,50 @@ def getCaptcha():
     except AppException as e:
         raise
     except Exception as e:
-        raise InternalServerError(f"获取验证码失败{e}")
+        raise InternalServerError(f"验证码获取失败{e}")
 
+@auth_bp.route('/account', methods=['GET'])
+@jwt_required
+def get_account():
+    try:
+        user_id = g.current_user['user_id']
+        user = AuthService.get_account(user_id)
+        return user.to_dict(), 200
+    except AppException:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"用户信息获取失败: {e}")
+
+@auth_bp.route('change-account', methods=['POST'])
+@jwt_required
+def change_account():
+    try:
+        data = request.get_json()
+        user_id = g.current_user['user_id']
+        username = data.get('username')
+        email = data.get('email')
+        AuthService.change_account(user_id, username, email)
+        return jsonify({
+            "message": "修改成功"
+        }), 200
+    except AppException:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"用户信息修改失败: {e}")
+
+@auth_bp.route('change-password', methods=['POST'])
+@jwt_required
+def change_password():
+    try:
+        data = request.get_json()
+        user_id = g.current_user['user_id']
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+        AuthService.change_password(user_id, old_password, new_password)
+        return jsonify({
+            "message": "密码修改成功"
+        }), 200
+    except AppException:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"密码修改失败: {e}")

@@ -2,27 +2,19 @@
 from flask import Blueprint, request, jsonify
 from app.services.vul import VulService
 from app.utils.decorators import jwt_required, require_role
-from app.utils.exceptions import AppException
+from app.utils.exceptions import AppException, InternalServerError
 
 vuls_bp = Blueprint('vuls', __name__)
 
-@vuls_bp.route('/<int:task_id>/vuls', methods=['GET'])
+@vuls_bp.route('/vul-list', methods=['PUT'])
 @jwt_required
-def get_vulnerabilities(task_id):
+def get_vul():
     try:
-        severity_filter = request.args.get('severity')
-        vuls = VulService.get_vulnerabilities(task_id, severity_filter)
-        return jsonify({
-            "vuls": [{
-                "vul_id": vul.vul_id,
-                "cve_id": vul.cve_id,
-                "severity": vul.severity
-            } for vul in vuls]
-        }), 200
-    except AppException as e:
-        raise
+        VulService.get_vuls()
+
+
     except Exception as e:
-        return jsonify({"error": "获取漏洞失败"}), 500
+        raise InternalServerError(f"获取漏洞详情错误: {str(e)}")
 
 @vuls_bp.route('/reports', methods=['POST'])
 @jwt_required

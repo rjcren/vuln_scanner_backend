@@ -38,7 +38,6 @@ class User(db.Model):
             "user_id": self.user_id,
             "email": self.email,
             "username": self.username,
+            "role": self.role,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
         }
-
-    def __repr__(self):
-        return f'<User {self.email}>'

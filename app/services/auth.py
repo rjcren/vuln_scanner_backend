@@ -4,7 +4,7 @@ import smtplib
 from app.models import User
 from app.extensions import db
 from app.utils import logger
-from app.utils.exceptions import *
+from app.utils.exceptions import AppException, BadRequest, Conflict, InternalServerError, ValidationError
 from flask_mail import Message
 from app.extensions import redis_client, mail
 import random
@@ -61,3 +61,36 @@ class AuthService:
         except Exception as e:
             logger.error(f"未知邮件错误: {str(e)}", exc_info=True)
             raise InternalServerError("邮件发送服务异常")
+
+    @staticmethod
+    def get_account(user_id: int):
+        try:
+            user = User.query.filter_by(user_id=user_id).first()
+            return user
+        except Exception as e:
+            raise InternalServerError(f"获取用户信息失败: {e}")
+
+    @staticmethod
+    def change_account(user_id:str,username: str, email: str):
+        try:
+            User.query.filter_by(user_id=user_id).update({'username': username, 'email': email})
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            raise InternalServerError(f"修改账号信息失败: {e}")
+
+    @staticmethod
+    def change_password(user_id: str, old_password: str, new_password: str):
+        try:
+            user = User.query.filter_by(user_id=user_id).first()
+            if not user.check_password(old_password):
+                raise ValidationError("旧密码错误")
+            user.password = new_password
+            db.session.commit()
+        except AppException:
+            raise
+        except Exception as e:
+            db.session.rollback()
+            raise InternalServerError(f"修改密码失败: {e}")
+
+

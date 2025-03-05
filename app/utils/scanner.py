@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash
 from flask import current_app
 from app.utils.exceptions import InternalServerError, ValidationError
+from app.utils.validation import InputValidator
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +16,9 @@ class ScannerUtils:
     """扫描工具集（整合Nmap、ZAP等工具调用）"""
 
     @staticmethod
-    def validate_target(target: str) -> bool:
-        """目标地址基础验证"""
-        return target.startswith(('http://', 'https://')) or target.count('.') == 4
-
-    @staticmethod
     def run_nmap_scan(target: str) -> List[Dict]:
         """执行Nmap端口扫描"""
-        if not ScannerUtils.validate_target(target):
+        if not InputValidator.validate_url(target):
             raise ValidationError("无效的扫描目标")
 
         output_file = Path(current_app.config['SCAN_OUTPUT_DIR']) / f"nmap_{datetime.now(timezone.utc):%Y%m%d%H%M%S}.xml"
@@ -39,8 +35,7 @@ class ScannerUtils:
             return ScannerUtils.parse_nmap_results(output_file)
 
         except subprocess.CalledProcessError as e:
-            logger.error(f"Nmap扫描失败: {str(e)}")
-            raise InternalServerError("端口扫描服务暂时不可用")
+            raise InternalServerError(f"端口扫描服务暂时不可用: Nmap扫描失败: {str(e)}")
 
     @staticmethod
     def parse_nmap_results(xml_path: Path) -> List[Dict]:
@@ -69,13 +64,12 @@ class ScannerUtils:
             } for item in results]
 
         except ET.ParseError as e:
-            logger.error(f"XML解析失败: {str(e)}")
-            raise InternalServerError("扫描结果解析异常")
+            raise InternalServerError(f"扫描结果解析异常: XML解析失败: {str(e)}")
 
     @staticmethod
     def run_zap_scan(target_url: str, api_key: str) -> List[Dict]:
         """执行OWASP ZAP扫描"""
-        if not ScannerUtils.validate_target(target_url):
+        if not InputValidator.validate_url(target_url):
             raise ValueError("无效的扫描目标")
 
         try:
@@ -99,14 +93,3 @@ class ScannerUtils:
         alerts = []
         # 这里添加具体的解析逻辑
         return alerts
-
-class SecurityUtils:
-    """安全相关工具（保留核心安全方法）"""
-
-    @staticmethod
-    def hash_password(password: str) -> str:
-        """密码哈希生成"""
-        return generate_password_hash(password)
-
-# 保留必要的工具函数
-__all__ = ["ScannerUtils", "SecurityUtils"]

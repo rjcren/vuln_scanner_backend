@@ -1,5 +1,17 @@
 from .auth import AuthService
-from .scanner import ScanService
 from .report import ReportService
+from .celery_tasks import CeleryTasks
+from .task import TaskService
+from .vul import VulService
+from .feedback import FeedbackService
+from .threat_intel import ThreatIntelService
 
-__all__ = ["AuthService", "ScanService", "ReportService"]
+__all__ = [
+    "AuthService",
+    "CeleryTasks",
+    "ReportService",
+    "TaskService",
+    "VulService",
+    "FeedbackService",
+    "ThreatIntelService",
+]

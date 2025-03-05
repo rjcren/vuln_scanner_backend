@@ -3,8 +3,11 @@ from flask import Blueprint, g, request, jsonify
 from app.services.task import TaskService
 from app.utils.decorators import jwt_required
 from app.models.scan_task import ScanTask
-from app.utils.exceptions import AppException, BadRequest, InternalServerError
+from app.utils.exceptions import AppException, BadRequest, Forbidden, InternalServerError
 from app.utils.scanner import ScannerUtils
+from sqlalchemy.orm import joinedload
+
+from app.utils.validation import InputValidator
 
 tasks_bp = Blueprint('tasks', __name__)
 
@@ -18,7 +21,7 @@ def create_task():
         target_url = data.get('target_url')
         scan_type = data.get('scan_type', 'quick')
 
-        if not ScannerUtils.validate_target(target_url):
+        if not InputValidator.validate_url(target_url):
             raise BadRequest("无效url")
 
         task = TaskService.create_task(user_id, task_name, target_url, scan_type)
@@ -68,20 +71,50 @@ def delete_tasks():
     """删除任务"""
     try:
         task_ids = request.get_json().get('task_id')
-        print(task_ids)
         if not task_ids:
             raise BadRequest("缺少要删除的任务ID")
 
-        TaskService.delete_task(task_ids.split(','))
-        return jsonify({"message": "删除成功"}), 204
+        role = g.current_user['role']
+        user_id = g.current_user['user_id']
+        count = TaskService.delete_task(task_ids.split(','), role, user_id)
+        return jsonify({"message": f"删除成功: {count}个任务"}), 200
 
     except AppException:
         raise
     except Exception as e:
         raise InternalServerError(f"删除任务失败: {e}")
 
-@tasks_bp.route('/<int:task_id>/start', methods=['POST'])
-def start_scan(task_id):
-    task = ScanTask.query.get_or_404(task_id)
-    task.start_scan()
-    return jsonify({"status": "scan started"}), 202
+@tasks_bp.route('/<int:task_id>', methods=['GET'])
+@jwt_required
+def get_task(task_id):
+    try:
+        task = TaskService.get_task(task_id)
+        return jsonify({
+            "task_id": task.task_id,
+            "task_name": task.task_name,
+            "target_url": task.target_url,
+            "scan_type": task.scan_type,
+            "status": task.status,
+            "created_at": task.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "finished_at": task.finished_at.strftime("%Y-%m-%d %H:%M:%S") if task.finished_at else None,
+            "task_logs": [log.to_dict() for log in task.task_logs] if task.task_logs else [],
+            "vulnerabilities": [vuln.to_dict() for vuln in task.vulnerabilities] if task.vulnerabilities else [],
+            "risk_reports": [report.to_dict() for report in task.risk_reports] if task.risk_reports else [],
+        }), 202
+    except AppException:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"获取任务详情失败: {e}")
+
+@tasks_bp.route('/start', methods=['POST'])
+@jwt_required
+def start_scan():
+    try:
+        task_id = request.get_json().get('task_id')
+        TaskService.start_scan_task(task_id)
+
+        return jsonify({"message": "扫描任务已启动"}), 202
+    except AppException:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"启动扫描失败: {e}")

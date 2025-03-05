@@ -2,7 +2,7 @@ from typing import List, Dict, Optional
 from app.extensions import db
 from app.models import Vulnerability, ScanTask
 from app.services.report import ReportService
-from app.utils.exceptions import NotFound, InternalServerError
+from app.utils.exceptions import BadRequest, NotFound, InternalServerError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,33 +11,26 @@ class VulService:
     """漏洞管理服务"""
 
     @staticmethod
-    def get_vulnerabilities(task_id: int, severity: str = None) -> List[Dict]:
+    def get_vuls(severity: str = None) -> List[Dict]:
         """获取指定任务的漏洞列表"""
         try:
-            query = Vulnerability.query.filter_by(task_id=task_id)
+            query = Vulnerability.query.all()
             if severity:
                 query = query.filter_by(severity=severity)
+            vul = query.all()
+            if not vul:
+                raise BadRequest("未找到相关漏洞记录")
 
-            vulnerabilities = query.all()
-            if not vulnerabilities:
-                raise NotFound("未找到相关漏洞记录")
-
-            return [{
-                "vul_id": vul.vul_id,
-                "cve_id": vul.cve_id,
-                "severity": vul.severity,
-                "description": vul.description
-            } for vul in vulnerabilities]
+            return vul
         except Exception as e:
-            logger.error(f"查询漏洞失败: {str(e)}")
-            raise InternalServerError("获取漏洞数据失败")
+            raise InternalServerError(f"获取漏洞数据失败: {str(e)}")
 
     @staticmethod
     def generate_report(task_id: int, format: str = "pdf") -> str:
         """生成漏洞报告"""
         try:
             task = ScanTask.query.get_or_404(task_id)
-            vulnerabilities = VulService.get_vulnerabilities(task_id)
+            vulnerabilities = VulService.get_vuls(task_id)
 
             if format == "pdf":
                 report_path = ReportService.generate_pdf_report(
@@ -49,10 +42,9 @@ class VulService:
                 )
                 return report_path
             else:
-                raise ValueError("不支持的报告格式")
+                raise BadRequest("不支持的报告格式")
         except Exception as e:
-            logger.error(f"生成报告失败: {str(e)}")
-            raise InternalServerError("报告生成失败")
+            raise InternalServerError(f"报告生成失败: {str(e)}")
 
     @staticmethod
     def get_fix_suggestions(vul_id: int) -> Dict:
@@ -65,5 +57,18 @@ class VulService:
                 "reference": f"https://nvd.nist.gov/vuln/detail/{vul.cve_id}"
             }
         except Exception as e:
-            logger.error(f"获取修复建议失败: {str(e)}")
-            raise InternalServerError("无法获取修复建议")
+            raise InternalServerError(f"无法获取修复建议: {str(e)}")
+
+
+    @staticmethod
+    def _save_results(task_id: int, results: List[Vulnerability]):
+        """保存漏洞结果到数据库"""
+        for item in results:
+            vuln = Vulnerability(
+                task_id=task_id,
+                vul_type=item["type"],
+                severity=item["severity"],
+                description=item["description"]
+            )
+            db.session.add(vuln)
+        db.session.commit()
