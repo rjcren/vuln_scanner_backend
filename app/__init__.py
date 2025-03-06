@@ -24,6 +24,8 @@ def create_app(name:str = None):
     app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+    # 忽略ssl证书验证
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"ssl": {"ssl_cert_reqs": "CERT_NONE"}}}
 
     mail.init_app(app)
     CORS(app, supports_credentials=True, origins=["*"])
