@@ -115,17 +115,16 @@ class TaskService:
             # 更新任务状态
             task.update_status('running')
             db.session.commit()
-            # 启动扫描
-            if task.scan_type == 'full':
-                # 全量扫描
-                CeleryTasks.full_scan(task)
-            else:
-                # 快速扫描
-                CeleryTasks.quick_scan(task)
+
+            # 调用celery异步任务
+            CeleryTasks.run_scan.delay(task_id)
+
             TaskService.task_log(task.task_id, "INFO", f"启动扫描任务: {task.task_name}")
+            return True
 
         except Exception as e:
             db.session.rollback()
+            TaskService.task_log(task.task_id, "ERROR", f"启动扫描任务失败: {task.task_name}")
             raise InternalServerError(f"启动扫描任务失败: {e}")
 
     @staticmethod
