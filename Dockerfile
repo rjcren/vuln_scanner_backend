@@ -33,5 +33,5 @@ ENV FLASK_ENV=production
 RUN mkdir /app/logs && chmod 777 /app/logs
 
 # 启动命令
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "run:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:443", "--workers", "4", "run:app"]
 

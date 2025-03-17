@@ -2,16 +2,13 @@ from flask import Flask
 from flask_cors import CORS
 from app.extensions import db, migrate, celery, mail
 from app.config import *
-from app.utils.exceptions import InternalServerError, register_error_handlers
+from app.utils.exceptions import InternalServerError
 from app.utils.logger import setup_logger
 import os
 
 def create_app(name:str = None):
     if name is None:
         name = os.getenv('FLASK_ENV', 'production')
-
-    from dotenv import load_dotenv
-    load_dotenv(verbose=True)
 
     app = Flask(__name__, instance_relative_config=True)
 
@@ -25,10 +22,19 @@ def create_app(name:str = None):
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
     # 忽略ssl证书验证
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"ssl": {"ssl_cert_reqs": "CERT_NONE"}}}
+    # app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"ssl": {"ssl_cert_reqs": "CERT_NONE"}}}
 
     mail.init_app(app)
-    CORS(app, supports_credentials=True, origins=["*"])
+    # 解决跨域问题
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["https://192.168.125.1:443", "http://192.168.125.1:80"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "expose_headers": ["Content-Range", "X-Total-Count"],
+            "supports_credentials": True,
+        }
+    })
+
 
     app.config.from_object(BaseConfig)
     if name == "production":
@@ -61,11 +67,30 @@ def create_app(name:str = None):
     app.register_blueprint(vuls_bp, url_prefix="/api/v1/vuls")
     app.register_blueprint(feedback_bp, url_prefix="/api/v1/feedback")
 
-    # 配置根日志记录器（确保所有模块继承）
+    # 配置根日志记录器
     app.logger.propagate = True
 
     # 添加全局异常处理器
     from app.utils.exceptions import AppException, register_error_handlers
     register_error_handlers(app)
 
+    # 确保数据库表已创建
+    with app.app_context():
+        try:
+            db.create_all()
+            app.logger.info("数据库表创建成功")
+        except Exception as e:
+            app.logger.error(f"数据库表创建失败: {str(e)}")
+            raise InternalServerError(f"数据库初始化失败: {str(e)}")
+
+        # 初始化管理员账户
+        from app.services.auth import AuthService
+        try:
+            default_admin_password = AuthService.init_admin()
+            if default_admin_password:
+                app.logger.info("管理员账户初始化成功")
+        except Exception as e:
+            app.logger.error(f"管理员账户初始化失败: {str(e)}")
+            raise InternalServerError(f"管理员账户初始化失败: {str(e)}")
+            
     return app

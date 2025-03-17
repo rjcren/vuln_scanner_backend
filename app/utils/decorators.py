@@ -14,28 +14,27 @@ def jwt_required(f):
     """JWT认证装饰器"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 从请求头获取令牌
-        auth_header = request.headers.get('Authorization', '')
-        if not auth_header.startswith('Bearer '):
-            logger.warning("缺少Bearer认证头")
-            raise Unauthorized("需要有效的访问令牌")
-
-        token = auth_header.split()[1]
+        # 获取令牌
+        token = request.cookies.get('jwt')
+        if not token:
+            raise Unauthorized("未授权登录")
+    
         try:
             payload = SecurityUtils.decode_jwt(token)
             if payload['iat'] > datetime.now(timezone.utc).timestamp():
                 raise Unauthorized("非法请求,请重新登录:非法未来时间Token")
+            if payload['exp'] < datetime.now(timezone.utc).timestamp():
+                raise Unauthorized(f"令牌已过期:{str(e)}")
 
             # 存储用户信息到上下文
             user = User.query.get(payload["sub"])
             if not user:
-                raise Unauthorized("用户状态异常:token用户不存在")
+                raise Unauthorized("用户状态异常:用户不存在")
             g.current_user = {
                 "user_id": payload["sub"],
+                "username": user.username,
                 "role": user.role,
             }
-        except jwt.ExpiredSignatureError as e:
-            raise Unauthorized(f"令牌已过期:{str(e)}")
         except Exception as e:
             raise Unauthorized(f"认证失败: {str(e)}")
 
@@ -52,7 +51,6 @@ def require_role(required_role):
                 raise Unauthorized("需要先进行认证")
             current_role = g.current_user.get('role', 'user')
             if current_role != required_role:
-                logger.warning(f"角色权限不足: 需要{required_role}, 当前{current_role}")
                 raise Forbidden("权限不足")
             return func(*args, **kwargs)
         return wrapper

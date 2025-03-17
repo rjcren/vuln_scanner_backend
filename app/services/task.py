@@ -1,14 +1,14 @@
 """任务管理"""
 
 from flask import g
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from app.models.scan_task import ScanTask
 from app.extensions import db
 from app.models.task_log import TaskLog
 from app.models.user import User
 from sqlalchemy.orm import joinedload
 from app.services.celery_tasks import CeleryTasks
-from app.utils.exceptions import BadRequest, Forbidden, InternalServerError, NotFound
+from app.utils.exceptions import AppException, BadRequest, Forbidden, InternalServerError, NotFound, Unauthorized
 
 
 class TaskService:
@@ -77,9 +77,7 @@ class TaskService:
     @staticmethod
     def get_task(task_id: int):
         try:
-            task = ScanTask.query.options(joinedload(ScanTask.user)).get(task_id)
-            if g.current_user['role'] != "admin" and task.user_id != g.current_user['user_id']:
-                raise Forbidden("无权限访问此任务")
+            if(not TaskService.is_auth(task_id)): raise Forbidden("无权限访问此任务")
             return (
                 ScanTask.query.options(
                     joinedload(ScanTask.vulnerabilities),
@@ -89,6 +87,7 @@ class TaskService:
                 .filter_by(task_id=task_id)
                 .first()
             )
+        except AppException: raise
         except Exception as e:
             raise InternalServerError(f"获取任务失败: {e}")
 
@@ -103,23 +102,32 @@ class TaskService:
         except Exception as e:
             db.session.rollback()
             raise InternalServerError(f"记录任务日志失败: {e}")
+        
+    @staticmethod
+    def get_task_status_stats():
+        """获取任务状态统计"""
+        try:
+            status = db.session.query(
+                ScanTask.status,
+                func.count(ScanTask.task_id)
+            ).group_by(ScanTask.status).all()
+            return status
+        except Exception as e:
+            raise InternalServerError(f"获取任务状态统计失败: {e}")
 
     @staticmethod
     def start_scan_task(task_id: int):
         """启动扫描任务"""
         try:
+            if(not TaskService.is_auth(task_id)): raise Forbidden("无权限访问此任务")
             task = ScanTask.query.get(task_id)
-            if not task:
-                raise BadRequest("任务未找到")
+            # 调用celery异步任务
+            CeleryTasks.run_scan(task_id).delay()
 
+            TaskService.task_log(task.task_id, "INFO", f"启动扫描任务: {task.task_name}")
             # 更新任务状态
             task.update_status('running')
             db.session.commit()
-
-            # 调用celery异步任务
-            CeleryTasks.run_scan.delay(task_id)
-
-            TaskService.task_log(task.task_id, "INFO", f"启动扫描任务: {task.task_name}")
             return True
 
         except Exception as e:
@@ -128,8 +136,34 @@ class TaskService:
             raise InternalServerError(f"启动扫描任务失败: {e}")
 
     @staticmethod
-    def validate_scan_status(task):
-        """验证任务状态是否允许扫描"""
-        valid_status = ["pending", "failed"]
-        if task.status not in valid_status:
-            raise BadRequest(f"任务当前状态为 {task.status}，无法重新启动")
+    def get_running_count() -> int:
+        """获取运行中的任务数量"""
+        try:
+            query = ScanTask.query.filter_by(status='running')
+            if g.current_user.get('role') != 'admin':
+                query = query.filter_by(user_id=int(g.current_user.get('user_id')))
+                
+            return query.count()
+        except Exception as e:
+            raise InternalServerError(f"获取运行中任务数量失败: {str(e)}")
+
+    @staticmethod
+    def is_auth(task_id):
+        """判断用户身份"""
+        try:
+            task = ScanTask.query.options(joinedload(ScanTask.user)).get(task_id)
+            if not task:
+                raise BadRequest(f"任务不存在")
+            # 检查当前用户上下文是否存在
+            if not hasattr(g, 'current_user'):
+                return Unauthorized("用户上下文异常！")
+            # 管理员具有所有权限
+            if g.current_user.get('role') == "admin":
+                return True
+            # 验证任务所有者
+            return task.user_id == int(g.current_user.get('user_id', 0))
+        except AppException:
+            raise
+        except Exception as e:
+            raise InternalServerError(f"判断用户身份失败: {str(e)}")
+

@@ -105,6 +105,28 @@ def get_task(task_id):
         raise
     except Exception as e:
         raise InternalServerError(f"获取任务详情失败: {e}")
+    
+@tasks_bp.route('/running-count', methods=['GET'])
+@jwt_required
+def get_running_count():
+    """获取运行中的任务数量"""
+    try:
+        count = TaskService.get_running_count()
+        return jsonify({
+            "count": count if count else 0
+        }), 200
+    except Exception as e:
+        raise InternalServerError(f"获取运行中任务数量失败: {str(e)}")
+
+@tasks_bp.route('/status-stats', methods=['GET'])
+@jwt_required 
+def get_status_stats():
+    """获取任务状态统计"""
+    try:
+        status = TaskService.get_task_status_stats()
+        return jsonify({key: count for key, count in status} if status else None), 200
+    except Exception as e:
+        raise InternalServerError(f"获取任务状态统计失败: {str(e)}")
 
 @tasks_bp.route('/start', methods=['POST'])
 @jwt_required
