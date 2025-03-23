@@ -21,7 +21,7 @@ class ScannerUtils:
         if not InputValidator.validate_url(target):
             raise ValidationError("无效的扫描目标")
 
-        output_file = Path(current_app.config['SCAN_OUTPUT_DIR']) / f"nmap_{datetime.now(timezone.utc):%Y%m%d%H%M%S}.xml"
+        output_file = Path(current_app.config["SCAN_OUTPUT_DIR"]) / f"nmap_{datetime.now(timezone.utc):%Y%m%d%H%M%S}.xml"
 
         try:
             subprocess.run([
@@ -45,22 +45,22 @@ class ScannerUtils:
             root = tree.getroot()
             results = []
 
-            for host in root.findall('host'):
-                ip = host.find('address').get('addr')
-                for port in host.findall('ports/port'):
+            for host in root.findall("host"):
+                ip = host.find("address").get("addr")
+                for port in host.findall("ports/port"):
                     port_data = {
                         "ip": ip,
-                        "port": port.get('portid'),
-                        "protocol": port.get('protocol'),
-                        "service": port.find('service').get('name') if port.find('service') else 'unknown',
-                        "version": port.find('service').get('version') if port.find('service') else ''
+                        "port": port.get("portid"),
+                        "protocol": port.get("protocol"),
+                        "service": port.find("service").get("name") if port.find("service") else "unknown",
+                        "version": port.find("service").get("version") if port.find("service") else ""
                     }
                     results.append(port_data)
 
             return [{
                 "type": "port",
                 "severity": "info",
-                "description": f"发现开放端口: {item['port']}/{item['protocol']} ({item['service']})"
+                "description": f"发现开放端口: {item["port"]}/{item["protocol"]} ({item["service"]})"
             } for item in results]
 
         except ET.ParseError as e:
@@ -70,7 +70,7 @@ class ScannerUtils:
     def run_zap_scan(target_url: str, api_key: str) -> List[Dict]:
         """执行OWASP ZAP扫描"""
         if not InputValidator.validate_url(target_url):
-            raise ValueError("无效的扫描目标")
+            raise ValidationError("无效的扫描目标")
 
         try:
             # ZAP API调用逻辑

@@ -1,4 +1,4 @@
-'''装饰器工具类'''
+"""装饰器工具类"""
 from datetime import datetime, timezone
 from functools import wraps
 from flask import request, g, current_app
@@ -15,15 +15,15 @@ def jwt_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # 获取令牌
-        token = request.cookies.get('jwt')
+        token = request.cookies.get("jwt")
         if not token:
             raise Unauthorized("未授权登录")
     
         try:
             payload = SecurityUtils.decode_jwt(token)
-            if payload['iat'] > datetime.now(timezone.utc).timestamp():
+            if payload["iat"] > datetime.now(timezone.utc).timestamp():
                 raise Unauthorized("非法请求,请重新登录:非法未来时间Token")
-            if payload['exp'] < datetime.now(timezone.utc).timestamp():
+            if payload["exp"] < datetime.now(timezone.utc).timestamp():
                 raise Unauthorized(f"令牌已过期:{str(e)}")
 
             # 存储用户信息到上下文
@@ -47,9 +47,9 @@ def require_role(required_role):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # 从g对象获取当前用户
-            if not hasattr(g, 'current_user'):
+            if not hasattr(g, "current_user"):
                 raise Unauthorized("需要先进行认证")
-            current_role = g.current_user.get('role', 'user')
+            current_role = g.current_user.get("role", "user")
             if current_role != required_role:
                 raise Forbidden("权限不足")
             return func(*args, **kwargs)

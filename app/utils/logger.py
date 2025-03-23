@@ -1,17 +1,17 @@
-'''日志配置'''
+"""日志配置"""
 import logging
 from logging.handlers import RotatingFileHandler
 import os
 
 def setup_logger(app):
     """统一日志配置"""
-    log_path = os.path.join(app.root_path, 'logs/app.log')
+    log_path = os.path.join(app.root_path, "logs/app.log")
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)s in %(module)s: %(message)s")
 
     file_handler = RotatingFileHandler(
-        log_path, maxBytes=1024 * 1024 * 10, backupCount=10, encoding='utf-8'
+        log_path, maxBytes=1024 * 1024 * 10, backupCount=10, encoding="utf-8"
     )
     file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.INFO)
@@ -26,3 +26,7 @@ def setup_logger(app):
     root_logger.addHandler(console_handler)
 
     app.logger.propagate = True  # 确保下游也能接收到日志
+    app.logger.setLevel(logging.WARNING)  # 或者使用 logging.ERROR
+    # 设置Celery的日志级别
+    logger = logging.getLogger('celery')
+    logger.setLevel(logging.WARNING)  # 或者使用 logging.ERROR

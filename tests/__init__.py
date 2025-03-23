@@ -1,5 +1,5 @@
 from flask import Flask
-from app.extensions import db, migrate, celery
+from app.extensions import db, migrate
 from app.config import BaseConfig, TestingConfig
 from app.utils.exceptions import register_error_handlers
 from app.utils.logger import setup_logger
@@ -13,7 +13,6 @@ def create_app():
     setup_logger(app)
     db.init_app(app)
     migrate.init_app(app, db)
-    celery.conf.update(app.config)
     register_error_handlers(app)
 
     # 注册蓝图

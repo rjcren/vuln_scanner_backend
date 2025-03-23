@@ -1,4 +1,4 @@
-'''认证逻辑'''
+"""认证逻辑"""
 import re
 import smtplib
 import logging
@@ -21,7 +21,7 @@ class AuthService:
         """初始化管理员账户"""
         try:
             if not User.query.get(1):
-                default_admin_password = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+                default_admin_password = "".join(random.choices(string.ascii_letters + string.digits, k=16))
                 admin = User(
                     username="admin",
                     password=default_admin_password,  # 密码会在User模型中自动加密
@@ -39,7 +39,7 @@ class AuthService:
             raise InternalServerError(f"初始化管理员账户失败: {str(e)}")
 
     @staticmethod
-    def register_user(email: str, password: str, username: str, role: str = 'user', code: str = None) -> User:
+    def register_user(email: str, password: str, username: str, role: str = "user", code: str = None) -> User:
         if not InputValidator.validate_password(password):
             Conflict("密码至少8位，包含大小写字母和数字")
         # 检查用户是否已存在
@@ -51,7 +51,7 @@ class AuthService:
         stored_captcha = redis_client.get(f"captcha:{email}")
         if not stored_captcha:
             raise ValidationError("验证码已过期或未发送")
-        if stored_captcha.decode('utf-8') != code:
+        if stored_captcha.decode("utf-8") != code:
             raise ValidationError("验证码错误")
         redis_client.delete(f"captcha:{email}")
 
@@ -80,7 +80,7 @@ class AuthService:
         captcha = "".join(captcha)
         try:
             # 验证邮箱格式
-            if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+            if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
                 raise ValidationError("无效的邮箱格式")
 
             message = Message(subject="漏洞检测系统验证码", recipients=[email], body=f"您的验证码是：{captcha}")
@@ -92,7 +92,7 @@ class AuthService:
         except smtplib.SMTPException as e:
             raise InternalServerError(f"邮件服务器连接失败: SMTP协议错误,{e}")
         except Exception as e:
-            raise InternalServerError("邮件发送服务异常: 未知邮件错误: {str(e)}")
+            raise InternalServerError(f"邮件发送服务异常: 未知邮件错误: {str(e)}")
 
     @staticmethod
     def change_account(user_id:str,username: str):

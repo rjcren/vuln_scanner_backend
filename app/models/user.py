@@ -1,20 +1,20 @@
-'''用户模型'''
+"""用户模型"""
 from datetime import datetime, timezone
 from app.extensions import db
 from app.utils.security import SecurityUtils
 
 class User(db.Model):
-    __tablename__ = 'users'
+    __tablename__ = "users"
     user_id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     _password_hash = db.Column("password", db.String(255), nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    role = db.Column(db.Enum('user', 'admin'), default='user', nullable=False)
+    role = db.Column(db.Enum("user", "admin"), default="user", nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
-    tasks = db.relationship('ScanTask', backref='user', lazy=True)
-    feedbacks = db.relationship('UserFeedback', backref='user', lazy=True)
+    tasks = db.relationship("ScanTask", backref="user", lazy=True)
+    feedbacks = db.relationship("UserFeedback", backref="user", lazy=True)
 
-    def __init__(self, username, email, password, role='user'):
+    def __init__(self, username, email, password, role="user"):
         self.email = email
         self.username = username
         self.password = password

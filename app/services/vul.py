@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from typing import List
 
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Vulnerability, ScanTask
 from app.services.report import ReportService
@@ -12,18 +13,42 @@ logger = logging.getLogger(__name__)
 
 class VulService:
     """漏洞管理服务"""
-
     @staticmethod
-    def get_vuls(severity: str = None):
-        """获取指定任务的漏洞列表"""
+    def get_vuls(task_id: int = None, severity: str = None, scan_source: str = None, page: int = 1, per_page: int = 10, keyword: str = ""):
+        """获取指定任务的漏洞列表，支持分页"""
         try:
-            query = Vulnerability.query.all()
+            query = Vulnerability.query.options(joinedload(Vulnerability.task))
+            
+            # 添加过滤条件
+            if task_id:
+                query = query.filter_by(task_id=task_id)
             if severity:
                 query = query.filter_by(severity=severity)
-            vul = query.all()
-            if not vul:
-                raise BadRequest("未找到相关漏洞记录")
-            return vul
+            if scan_source:
+                query = query.filter_by(scan_source=scan_source)
+            if keyword:
+                search_pattern = f"%{keyword}%"
+                query = query.join(Vulnerability.task).filter(
+                    or_(
+                        Vulnerability.scan_source.ilike(search_pattern),
+                        Vulnerability.vul_type.ilike(search_pattern),
+                        Vulnerability.severity.ilike(search_pattern),
+                        Vulnerability.task.has(ScanTask.task_name.ilike(search_pattern)),
+                        Vulnerability.task.has(ScanTask.target_url.ilike(search_pattern))
+                    )
+                )
+            # 按时间倒序排序
+            query = query.order_by(Vulnerability.vul_id.desc())
+            
+            # 执行分页查询
+            pagination = query.paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            return pagination
+        except BadRequest:
+            raise
         except Exception as e:
             raise InternalServerError(f"获取漏洞数据失败: {str(e)}")
         
@@ -67,63 +92,27 @@ class VulService:
         """获取高风险漏洞数量"""
         try:
             query = Vulnerability.query.filter(
-                Vulnerability.severity.in_(['critical', 'high'])
+                Vulnerability.severity.in_(["critical", "high"])
             )
-            # 添加调试日志
-            logger.debug(f"SQL查询语句: {str(query.statement)}")
             count = query.count()
-            logger.debug(f"查询结果数量: {count}")
             return count
         except Exception as e:
-            logger.error(f"获取高风险漏洞数量失败: {str(e)}")
             raise InternalServerError(f"获取高风险漏洞数量失败: {str(e)}")
-
-    @staticmethod
-    def generate_report(task_id: int, format: str = "pdf") -> str:
-        """生成漏洞报告"""
-        try:
-            task = ScanTask.query.get_or_404(task_id)
-            vulnerabilities = VulService.get_vuls(task_id)
-
-            if format == "pdf":
-                report_path = ReportService.generate_pdf_report(
-                    title=f"漏洞扫描报告 - 任务{task_id}",
-                    content={
-                        "target": task.target_url,
-                        "vulnerabilities": vulnerabilities
-                    }
-                )
-                return report_path
-            else:
-                raise BadRequest("不支持的报告格式")
-        except Exception as e:
-            raise InternalServerError(f"报告生成失败: {str(e)}")
-
-    @staticmethod
-    def get_fix_suggestions(vul_id: int):
-        """获取漏洞修复建议"""
-        try:
-            vul = Vulnerability.query.get_or_404(vul_id)
-            # 示例逻辑，实际应集成修复知识库
-            return {
-                "solution": vul.solution or "请升级到最新版本",
-                "reference": f"https://nvd.nist.gov/vuln/detail/{vul.cve_id}"
-            }
-        except Exception as e:
-            raise InternalServerError(f"无法获取修复建议: {str(e)}")
-
 
     @staticmethod
     def _save_results(task_id: int, results: List[Vulnerability]):
         """保存漏洞结果到数据库"""
-        for item in results:
-            vuln = Vulnerability(
-                task_id=task_id,
-                scan_source=item["scan_source"],
-                cve_id=item['cve_id'],
-                severity=item["severity"],
-                description=item["description"] or '暂无',
-                solution=item['solution'] or '暂无'
-            )
-            db.session.add(vuln)
-        db.session.commit()
+        try:
+            existing_scan_ids = db.session.query(Vulnerability.scan_id).filter_by(task_id=task_id).all()
+            existing_scan_ids = [item[0] for item in existing_scan_ids]
+
+            for item in results:
+                if item.scan_id not in existing_scan_ids:
+                    item.task_id = task_id
+                    db.session.add(item)
+                
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"漏洞保存失败: {str(e)}")
+            raise InternalServerError(f"漏洞保存失败: {str(e)}")

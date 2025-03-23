@@ -1,31 +1,60 @@
-'''第三方扩展模块'''
+from celery import Celery
+from flask import Flask
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from celery import Celery
 import os
-import redis
 from flask_mail import Mail
+import redis
 
 mail = Mail()
-
-# 数据库扩展
 db = SQLAlchemy()
 migrate = Migrate()
 
-redis_url = os.getenv('REDIS_URI', 'redis://localhost:6379/0')
+redis_url = os.getenv("REDIS_URI", "redis://localhost:6379/0")
 redis_client = redis.Redis.from_url(redis_url)
 
-# Celery扩展
-celery = Celery(
-    __name__,
-    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1'),
-    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/2'),
-    include=["app.tasks.scan_tasks"]
-)
+celery: Celery = None
 
-def init_extensions(app):
+def make_celery(app):
+    global celery
+    celery = Celery(app.import_name)
+
+    # 从 Flask 配置更新 Celery 配置
+    celery.conf.update(app.config)
+    celery.conf.update(
+        broker_connection_retry_on_startup=True,
+        task_serializer='json',
+        accept_content=['json'],
+        result_serializer='json',
+        imports=['app.celery_task.celery_tasks']
+    )
+
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+
+    # 在设置完所有配置后再自动发现任务
+    celery.autodiscover_tasks(['app.celery_task'], force=True)
+    
+    return celery
+    
+def init_extensions(app: Flask):
     """统一初始化所有扩展"""
+    # 初始化数据库、邮件等
     db.init_app(app)
     migrate.init_app(app, db)
-    celery.conf.update(app.config)
-    celery.autodiscover_tasks(['app.tasks'])  # 自动发现任务
+    mail.init_app(app)
+
+    # 初始化 CORS
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["https://192.168.125.1:443", "http://192.168.125.1:80"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "expose_headers": ["Content-Range", "X-Total-Count"],
+            "supports_credentials": True,
+        }
+    })

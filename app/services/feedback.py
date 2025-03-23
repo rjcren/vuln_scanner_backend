@@ -1,4 +1,4 @@
-'''用户反馈服务'''
+"""用户反馈服务"""
 from app.models import UserFeedback
 from app.extensions import db
 
