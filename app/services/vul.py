@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 from typing import List
 
+from flask import g
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Vulnerability, ScanTask
-from app.services.report import ReportService
-from app.utils.exceptions import BadRequest, NotFound, InternalServerError
+from app.utils.exceptions import AppException, NotFound, InternalServerError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,40 +14,41 @@ logger = logging.getLogger(__name__)
 class VulService:
     """漏洞管理服务"""
     @staticmethod
-    def get_vuls(task_id: int = None, severity: str = None, scan_source: str = None, page: int = 1, per_page: int = 10, keyword: str = ""):
+    def get_vuls(task_ids: list[int] = None, sources: list = None, severities: List = None, page: int = 1, per_page: int = 10, keyword: str = "", sort_field: str = None, sort_order: str = None):
         """获取指定任务的漏洞列表，支持分页"""
         try:
             query = Vulnerability.query.options(joinedload(Vulnerability.task))
-            
+
+            if g.current_user["role"] != "admin":
+                query = query.join(Vulnerability.task).filter(ScanTask.user_id == g.current_user["user_id"])
+
             # 添加过滤条件
-            if task_id:
-                query = query.filter_by(task_id=task_id)
-            if severity:
-                query = query.filter_by(severity=severity)
-            if scan_source:
-                query = query.filter_by(scan_source=scan_source)
+            if task_ids:
+                query = query.filter(Vulnerability.task_id.in_(task_ids))
+            if sources:
+                query = query.filter(Vulnerability.scan_source.in_(sources))
+            if severities:
+                query = query.filter(Vulnerability.severity.in_(severities))
             if keyword:
                 search_pattern = f"%{keyword}%"
-                query = query.join(Vulnerability.task).filter(
-                    or_(
-                        Vulnerability.scan_source.ilike(search_pattern),
-                        Vulnerability.vul_type.ilike(search_pattern),
-                        Vulnerability.severity.ilike(search_pattern),
-                        Vulnerability.task.has(ScanTask.task_name.ilike(search_pattern)),
-                        Vulnerability.task.has(ScanTask.target_url.ilike(search_pattern))
-                    )
-                )
-            # 按时间倒序排序
-            query = query.order_by(Vulnerability.vul_id.desc())
+                query = query.join(Vulnerability.task).filter(Vulnerability.vul_type.ilike(search_pattern))
+            # 排序
+            if sort_field and sort_order:
+                sort_column = getattr(Vulnerability, sort_field, None)
+                if sort_column:
+                    if sort_order.lower() == 'asc':
+                        query = query.order_by(sort_column.asc())
+                    else:
+                        query = query.order_by(sort_column.desc())
             
             # 执行分页查询
             pagination = query.paginate(
-                page=page,
-                per_page=per_page,
+                page=int(page),
+                per_page=int(per_page),
                 error_out=False
             )
             return pagination
-        except BadRequest:
+        except AppException:
             raise
         except Exception as e:
             raise InternalServerError(f"获取漏洞数据失败: {str(e)}")

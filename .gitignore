@@ -6,5 +6,6 @@ test/
 migrations/
 
 *.log
-app/logs/*
+./app/logs/*
+tests/*
 .env

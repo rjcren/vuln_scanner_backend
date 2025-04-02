@@ -6,7 +6,7 @@ from flask import g
 from sqlalchemy import or_
 from app.models import User
 from app.extensions import db, redis_client, mail
-from app.utils.exceptions import AppException, BadRequest, Conflict, InternalServerError, Unauthorized, ValidationError
+from app.utils.exceptions import AppException, ValidationError, Conflict, InternalServerError, Unauthorized, ValidationError
 from app.utils.validation import InputValidator
 from flask_mail import Message
 import random
@@ -70,7 +70,7 @@ class AuthService:
     def authenticate_user(email: str, password: str) -> User:
         user = User.query.filter_by(email=email).first()
         if not user or not user.check_password(password):
-            raise BadRequest("账号或密码错误")
+            raise ValidationError("账号或密码错误")
         return user
 
     @staticmethod

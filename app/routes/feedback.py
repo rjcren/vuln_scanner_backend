@@ -2,7 +2,7 @@
 from flask import Blueprint, g, request, jsonify
 from app.services.feedback import FeedbackService
 from app.utils.decorators import jwt_required
-from app.utils.exceptions import InternalServerError, BadRequest, AppException
+from app.utils.exceptions import InternalServerError, ValidationError, AppException
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ def submit_feedback():
         data = request.get_json()
         if not data or "task_id" not in data or "description" not in data:
             logger.error("缺少必要参数", exc_info=True)
-            raise BadRequest("缺少必要参数")
+            raise ValidationError("缺少必要参数")
         user_id = g.current_user["user_id"]
         task_id = data.get("task_id")
         description = data.get("description")

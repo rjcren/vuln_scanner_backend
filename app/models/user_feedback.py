@@ -7,7 +7,7 @@ class UserFeedback(db.Model):
     feedback_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     task_id = db.Column(db.Integer, db.ForeignKey("scan_tasks.task_id"), nullable=False)
-    vul_description = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=False)
     status = db.Column(db.Enum("pending", "resolved"), default="pending")
     created_at = db.Column(db.DateTime, default=datetime.now)
 

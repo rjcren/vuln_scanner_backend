@@ -19,12 +19,21 @@ def get_vuls():
         keyword = request.args.get('keyword')
         
         # 获取过滤参数
-        task_id = request.args.get('task_id')
-        severity = request.args.get('severity')
-        scan_source = request.args.get('scan_source')
+        task_filter = request.args.get('taskFilter', type=str)
+        source_filter = request.args.get('sourceFilter', type=str)
+        severityFilter = request.args.get('severityFilter', type=str)
+        
+        # 获取排序参数
+        sort_field = request.args.get('sortField', type=str)
+        sort_order = request.args.get('sortOrder', type=str)
+        
+        # 将过滤参数转换为列表
+        task_ids = [int(task_id) for task_id in task_filter.split(',') if task_id.strip().isdigit()] if task_filter else []
+        sources = source_filter.split(',') if source_filter else []
+        severities = severityFilter.split(',') if severityFilter else []
         
         # 获取分页后的漏洞数据
-        pagination = VulService.get_vuls(task_id, severity, scan_source, int(page), int(size), keyword)
+        pagination = VulService.get_vuls(task_ids, sources, severities, page, size, keyword, sort_field, sort_order)
         
         # 构造返回数据
         return jsonify({

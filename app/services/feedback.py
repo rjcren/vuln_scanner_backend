@@ -8,7 +8,7 @@ class FeedbackService:
         feedback = UserFeedback(
             user_id=user_id,
             task_id=task_id,
-            vul_description=description
+            description=description
         )
         db.session.add(feedback)
         db.session.commit()

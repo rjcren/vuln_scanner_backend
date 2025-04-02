@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>扫描报告 - </title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .header { text-align: center; }
+        .section { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        .severity-critical { color: #ff0000; }
+        .severity-high { color: #ff6a00; }
+        .severity-medium { color: #ffd800; }
+        .severity-low { color: #36b536; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>安全扫描报告</h1>
+        <h2>http://192.168.125.134:801</h2>
+    </div>
+
+    <div class="section">
+        <h3>任务概览</h3>
+        <p>目标URL：http://192.168.125.134:801</p>
+        <p>扫描类型：full</p>
+        <p>状态：completed</p>
+        <p>创建时间: 2025-03-25 13:23:08</p>
+        <p>完成时间: 2025-03-25 13:53:43</p>
+    </div>
+
+    <div class="section">
+        <h3>漏洞列表（共17个）</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>漏洞类型</th>
+                    <th>严重性</th>
+                    <th>描述</th>
+                    <th>修复建议</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                <tr>
+                    <td>Insecure HTTP Usage</td>
+                    <td class="severity-medium">MEDIUM</td>
+                    <td>It was detected that your web application uses HTTP protocol, but doesn&#39;t automatically redirect users to HTTPS.</td>
+                    <td>It&#39;s recommended to implement best practices of HTTP Redirection into your web application. Consult web references for more information</td>
+                </tr>
+                
+                <tr>
+                    <td>[Possible] Backup Source Code Detected</td>
+                    <td class="severity-high">HIGH</td>
+                    <td>A possible backup file was found on your web-server. These files are usually created by developers to backup their work.</td>
+                    <td>Remove the file(s) if they are not required on your website. As an additional step, it is recommended to implement a security policy within your organization to disallow creation of backup files in directories accessible from the web.</td>
+                </tr>
+                
+                <tr>
+                    <td>Possible sensitive directories</td>
+                    <td class="severity-low">LOW</td>
+                    <td>One or more possibly sensitive directories were found. These resources are not directly linked from the website. This check looks for common sensitive resources like backup directories, database dumps, administration pages, temporary directories. Each one of these directories could help an attacker to learn more about his target.</td>
+                    <td>Restrict access to these directories or remove them from the website.</td>
+                </tr>
+                
+                <tr>
+                    <td>File Upload Functionality Detected</td>
+                    <td class="severity-info">INFO</td>
+                    <td>These pages allows visitors to upload files to the server. Various web applications allow users to upload files (such as pictures, images, sounds, ...). Uploaded files may pose a significant risk if not handled correctly. A remote attacker could send a multipart/form-data POST request with a specially-crafted filename or mime type and execute arbitrary code.</td>
+                    <td>Restrict file types accepted for upload: check the file extension and only allow certain files to be uploaded. Use a whitelist approach instead of a blacklist. Check for double extensions such as .php.png. Check for files without a filename like .htaccess (on ASP.NET, check for configuration files like web.config). Change the permissions on the upload folder so the files within it are not executable. If possible, rename the files that are uploaded.</td>
+                </tr>
+                
+                <tr>
+                    <td>[Possible] Internal Path Disclosure (*nix)</td>
+                    <td class="severity-info">INFO</td>
+                    <td>One or more fully qualified path names were found. From this information the attacker may learn the file system structure from the web server. This information can be used to conduct further attacks.&lt;br/&gt;&lt;br/&gt;&lt;div class=&#34;bb-coolbox&#34;&gt;&lt;span class=&#34;bb-dark&#34;&gt;This alert may be a false positive, manual confirmation is required.&lt;/span&gt;&lt;/div&gt;</td>
+                    <td>Prevent this information from being displayed to the user.</td>
+                </tr>
+                
+                <tr>
+                    <td>[Possible] Password Transmitted over Query String</td>
+                    <td class="severity-medium">MEDIUM</td>
+                    <td>These page(s) contain a form with a password field. The form&#39;s &lt;strong&gt;method attribute&lt;/strong&gt; is either set to GET, or not defined at all, in which case it defaults to GET. This configuration may lead to user data being submitted using the GET method, causing the contents of the password field to appear in the URL. Sensitive information should not be passed via the URL. URLs could be logged or leaked via the Referer header.</td>
+                    <td>The HTML form&#39;s method attribute should be defined and set POST rather than GET.</td>
+                </tr>
+                
+                <tr>
+                    <td>Clickjacking: CSP frame-ancestors missing</td>
+                    <td class="severity-low">LOW</td>
+                    <td>Clickjacking (User Interface redress attack, UI redress attack, UI redressing) is a malicious technique of tricking a Web user into clicking on something different from what the user perceives they are clicking on, thus potentially revealing confidential information or taking control of their computer while clicking on seemingly innocuous web pages. &lt;br/&gt;&lt;br/&gt;
+The server didn&#39;t return a &lt;strong&gt;frame-ancestors&lt;/strong&gt; directive in the Content-Security-Policy header which means that this website could be at risk of a clickjacking attack. The frame-ancestors directives can be used to indicate whether or not a browser should be allowed to render a page inside a frame. Sites can use this to avoid clickjacking attacks, by ensuring that their content is not embedded into other sites.</td>
+                    <td>Configure your web server to include a CSP header with frame-ancestors directive and an X-Frame-Options header. Consult Web references for more information about the possible values for this header.</td>
+                </tr>
+                
+                <tr>
+                    <td>Programming Error Messages</td>
+                    <td class="severity-low">LOW</td>
+                    <td>&lt;div class=&#34;bb-coolbox&#34;&gt;&lt;span class=&#34;bb-dark&#34;&gt;This alert requires manual confirmation&lt;/span&gt;&lt;/div&gt;&lt;br/&gt;
+Acunetix found one or more error/warning messages. 
+Application error or warning messages may expose sensitive information about an application&#39;s internal workings to an attacker.&lt;br/&gt;
+These messages may also contain the location of the file that produced an unhandled exception.&lt;br/&gt; 
+Consult the &#39;Attack details&#39; section for more information about the affected page(s).</td>
+                    <td>Verify that these page(s) are disclosing error or warning messages and properly configure the application to log errors to a file instead of displaying the error to the user.</td>
+                </tr>
+                
+                <tr>
+                    <td>Subresource Integrity (SRI) Not Implemented</td>
+                    <td class="severity-info">INFO</td>
+                    <td>Subresource Integrity (SRI) is a security feature that enables browsers to verify that third-party resources they fetch (for example, from a CDN) are delivered without unexpected manipulation. It works by allowing developers to provide a cryptographic hash that a fetched file must match. &lt;br/&gt;&lt;br/&gt;
+Third-party resources (such as scripts and stylesheets) can be manipulated. An attacker that has access or has hacked the hosting CDN can manipulate or replace the files. SRI allows developers to specify a base64-encoded cryptographic hash of the resource to be loaded. The integrity attribute containing the hash is then added to the &amp;lt;script&amp;gt; HTML element tag. The integrity string consists of a base64-encoded hash, followed by a prefix that depends on the hash algorithm. This prefix can either be sha256, sha384 or sha512. &lt;br/&gt;&lt;br/&gt;
+
+The script loaded from the external URL specified in the Details section doesn&#39;t implement Subresource Integrity (SRI). It&#39;s recommended to implement Subresource Integrity (SRI) for all the scripts loaded from external hosts.</td>
+                    <td>Use the SRI Hash Generator link (from the References section) to generate a &amp;lt;script&amp;gt; element that implements Subresource Integrity (SRI). &lt;br/&gt;&lt;br/&gt;
+
+For example, you can use the following &amp;lt;script&amp;gt; element to tell a browser that before executing the https://example.com/example-framework.js script, the browser must first compare the script to the expected hash, and verify that there&#39;s a match.
+
+&lt;pre&gt;&lt;code&gt;
+&amp;lt;script src=&amp;quot;https://example.com/example-framework.js&amp;quot;
+        integrity=&amp;quot;sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/uxy9rx7HNQlGYl1kPzQho1wx4JwY8wC&amp;quot;
+        crossorigin=&amp;quot;anonymous&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;</td>
+                </tr>
+                
+                <tr>
+                    <td>SQL Injection</td>
+                    <td class="severity-critical">CRITICAL</td>
+                    <td>SQL injection (SQLi) refers to an injection attack wherein an attacker can execute malicious SQL statements that control a web application&#39;s database server.</td>
+                    <td>Use parameterized queries when dealing with SQL queries that contain user input. Parameterized queries allow the database to understand which parts of the SQL query should be considered as user input, therefore solving SQL injection.</td>
+                </tr>
+                
+                <tr>
+                    <td>Configuration file source code disclosure</td>
+                    <td class="severity-high">HIGH</td>
+                    <td>A backup/temporary configuration file was found on this directory. It has been confirmed that this file contains PHP source code.&lt;br/&gt;&lt;br/&gt;
+
+Several popular text editors like Vim and Emacs automatically create backup copies of the files you edit, giving them names like &amp;quot;wp-config.php~&amp;quot; and &amp;quot;#wp-config.php#&amp;quot;. If the text editor crashes or the SSH connection drops during editing, then the temporary backup files may not be cleaned up correctly. Also, sometimes developers create this type of files to backup their work or by administrators when making backups of the web server. Most servers, including Apache, will serve the plaintext of .php~ and .php# files without passing them through the PHP preprocessor first, since they don&#39;t have the .php file extension.</td>
+                    <td>Remove this file from the web server. As an additional step, it is recommended to implement a security policy within your organization to disallow creation of temporary/backup files in directories accessible from the web.</td>
+                </tr>
+                
+                <tr>
+                    <td>SQL Injection</td>
+                    <td class="severity-critical">CRITICAL</td>
+                    <td>SQL injection (SQLi) refers to an injection attack wherein an attacker can execute malicious SQL statements that control a web application&#39;s database server.</td>
+                    <td>Use parameterized queries when dealing with SQL queries that contain user input. Parameterized queries allow the database to understand which parts of the SQL query should be considered as user input, therefore solving SQL injection.</td>
+                </tr>
+                
+                <tr>
+                    <td>Cross-site Scripting</td>
+                    <td class="severity-high">HIGH</td>
+                    <td>Cross-site Scripting (XSS) refers to client-side code injection attack wherein an attacker can execute malicious scripts into a legitimate website or web application. XSS occurs when a web application makes use of unvalidated or unencoded user input within the output it generates.</td>
+                    <td>Apply context-dependent encoding and/or validation to user input rendered on a page</td>
+                </tr>
+                
+                <tr>
+                    <td>Cookies with Secure flag set over insecure connection</td>
+                    <td class="severity-info">INFO</td>
+                    <td>One or more cookies does have the Secure flag set, but it was set over an insecure connection. Although the Secure flag is an important security protection for session cookies, setting it over an insecure connection will prevent clients from sending the cookie back to the server. This is not a vulnerability, but an inconsistent configuration. As such, it does not have a direct impact on the security of the application, but may well affect its functionality.</td>
+                    <td>Make the target accessible through a secure connection. If that is not possible, ensure that the application does not depend on the cookies with the Secure flag.</td>
+                </tr>
+                
+                <tr>
+                    <td>[Possible] Internal IP Address Disclosure</td>
+                    <td class="severity-low">LOW</td>
+                    <td>One or more strings matching an internal IPv4 address were found. These IPv4 addresses may disclose information about the IP addressing scheme of the internal network. This information can be used to conduct further attacks.&lt;br/&gt;&lt;br/&gt;&lt;div class=&#34;bb-coolbox&#34;&gt;&lt;span class=&#34;bb-dark&#34;&gt;The significance of this finding should be confirmed manually.&lt;/span&gt;&lt;/div&gt;</td>
+                    <td>Prevent this information from being displayed to the user.</td>
+                </tr>
+                
+                <tr>
+                    <td>Cross-site Scripting</td>
+                    <td class="severity-high">HIGH</td>
+                    <td>Cross-site Scripting (XSS) refers to client-side code injection attack wherein an attacker can execute malicious scripts into a legitimate website or web application. XSS occurs when a web application makes use of unvalidated or unencoded user input within the output it generates.</td>
+                    <td>Apply context-dependent encoding and/or validation to user input rendered on a page</td>
+                </tr>
+                
+                <tr>
+                    <td>Cross-site Scripting</td>
+                    <td class="severity-high">HIGH</td>
+                    <td>Cross-site Scripting (XSS) refers to client-side code injection attack wherein an attacker can execute malicious scripts into a legitimate website or web application. XSS occurs when a web application makes use of unvalidated or unencoded user input within the output it generates.</td>
+                    <td>Apply context-dependent encoding and/or validation to user input rendered on a page</td>
+                </tr>
+                
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>任务日志</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>级别</th>
+                    <th>消息</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                <tr>
+                    <td>2025-03-25 13:23:08</td>
+                    <td>INFO</td>
+                    <td>目标访问成功</td>
+                </tr>
+                
+                <tr>
+                    <td>2025-03-25 13:23:08</td>
+                    <td>INFO</td>
+                    <td>创建任务成功</td>
+                </tr>
+                
+                <tr>
+                    <td>2025-03-25 13:27:11</td>
+                    <td>INFO</td>
+                    <td>AWVS扫描启动成功</td>
+                </tr>
+                
+                <tr>
+                    <td>2025-03-25 13:27:12</td>
+                    <td>ERROR</td>
+                    <td>ZAP扫描启动失败url_not_found</td>
+                </tr>
+                
+                <tr>
+                    <td>2025-03-25 13:27:12</td>
+                    <td>INFO</td>
+                    <td>Xray扫描结束</td>
+                </tr>
+                
+                <tr>
+                    <td>2025-03-25 13:53:43</td>
+                    <td>INFO</td>
+                    <td>AWVS扫描成功</td>
+                </tr>
+                
+                <tr>
+                    <td>2025-03-25 13:53:43</td>
+                    <td>INFO</td>
+                    <td>ZAP扫描成功</td>
+                </tr>
+                
+                <tr>
+                    <td>2025-03-25 13:53:43</td>
+                    <td>INFO</td>
+                    <td>扫描结束</td>
+                </tr>
+                
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

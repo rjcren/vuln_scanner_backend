@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>扫描报告 - {{ content.targer_url }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .header { text-align: center; }
+        .section { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        .severity-critical { color: #ff0000; }
+        .severity-high { color: #ff6a00; }
+        .severity-medium { color: #ffd800; }
+        .severity-low { color: #36b536; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>安全扫描报告</h1>
+        <h2>{{ content.task_name }}</h2>
+    </div>
+
+    <div class="section">
+        <h3>任务概览</h3>
+        <p>目标URL：{{ content.target_url }}</p>
+        <p>扫描类型：{{ content.scan_type }}</p>
+        <p>状态：{{ content.status }}</p>
+        <p>创建时间: {{ content.created_at }}</p>
+        <p>完成时间: {{ content.finished_at }}</p>
+    </div>
+
+    <div class="section">
+        <h3>漏洞列表（共{{ content.vulnerabilities|length }}个）</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>漏洞类型</th>
+                    <th>严重性</th>
+                    <th>描述</th>
+                    <th>修复建议</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vuln in content.vulnerabilities %}
+                <tr>
+                    <td>{{ vuln.vul_type }}</td>
+                    <td class="severity-{{ vuln.severity }}">{{ vuln.severity|upper }}</td>
+                    <td>{{ vuln.description }}</td>
+                    <td>{{ vuln.solution }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>任务日志</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>级别</th>
+                    <th>消息</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in content.task_logs %}
+                <tr>
+                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ log.log_level }}</td>
+                    <td>{{ log.log_message }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

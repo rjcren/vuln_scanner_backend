@@ -24,10 +24,19 @@ def make_celery(app):
     celery.conf.update(app.config)
     celery.conf.update(
         broker_connection_retry_on_startup=True,
+        worker_hijack_root_logger = False,
         task_serializer='json',
         accept_content=['json'],
         result_serializer='json',
-        imports=['app.celery_task.celery_tasks']
+        timezone = 'Asia/Shanghai',
+        enable_utc = True,
+        task_default_queue = 'default',
+        task_acks_late = True,
+        task_reject_on_worker_lost = True,
+        task_track_started = True,
+        result_extended = True,
+        imports = ['app.services.celery_task.celery_tasks'],
+        worker_concurrency = 3
     )
 
     class ContextTask(celery.Task):
@@ -52,7 +61,7 @@ def init_extensions(app: Flask):
     # 初始化 CORS
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["https://192.168.125.1:443", "http://192.168.125.1:80"],
+            "origins": ["https://192.168.125.1:443", "https://192.168.125.1:444", "http://192.168.125.1:80"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "expose_headers": ["Content-Range", "X-Total-Count"],
             "supports_credentials": True,

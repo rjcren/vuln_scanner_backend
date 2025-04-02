@@ -19,23 +19,15 @@ class BaseConfig:
 
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "mysql+pymysql://root:root@127.0.0.1:3306/vuln_scanner?charset=utf8")
 
+    # 扫描工具配置
+    AWVS_API_URL = os.getenv("AWVS_API_URL", "https://127.0.0.1:3443").strip("/")
+    AWVS_API_KEY = os.getenv("AWVS_API_KEY", "none")
+    ZAP_API_URL = os.getenv("ZAP_API_URL", "https://127.0.0.1:8080").strip("/")
+    ZAP_API_KEY = os.getenv("ZAP_API_KEY", "none")
+
     # Celery配置
-    broker_url = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1')  # 修改了环境变量名以匹配新的格式
-    result_backend = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/2')  # 同上
-    task_serializer = 'json'
-    result_serializer = 'json'
-    accept_content = ['json']
-    timezone = 'Asia/Shanghai'
-    enable_utc = True
-    worker_hijack_root_logger = False
-    task_default_queue = 'default'
-    task_acks_late = True
-    task_reject_on_worker_lost = True
-    task_track_started = True
-    broker_connection_retry_on_startup = True
-    result_extended = True
-    imports = ['app.celery_task.celery_tasks']
-    worker_concurrency = 3
+    broker_url = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1')
+    result_backend = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/2')
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True

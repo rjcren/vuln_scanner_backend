@@ -2,7 +2,7 @@
 
 import re
 from urllib.parse import urlparse
-from app.utils.exceptions import BadRequest
+from app.utils.exceptions import ValidationError
 
 
 class InputValidator:
