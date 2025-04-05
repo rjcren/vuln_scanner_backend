@@ -37,24 +37,26 @@ def login():
         password = data.get("password")
 
         user = AuthService.authenticate_user(email, password)
-        token = SecurityUtils.generate_jwt(user.user_id, user.username, user.role)
+        jwt_token = SecurityUtils.generate_jwt(user.user_id, user.username, user.role)
+        csrf_token = SecurityUtils.generate_csrf_token(user.user_id, user.username, user.role)
 
         response = make_response(jsonify({"message": "登录成功"}))
         response.set_cookie(
             "jwt",
-            token,
+            jwt_token,
             domain="192.168.125.1",  # 匹配所有子域名
             httponly=True,
             secure=True,  # 开发环境关闭
             samesite="None",
             path="/"
         )
+        response.set_cookie("csrf_token", csrf_token, httponly=False, secure=True, samesite="Strict")
         return response, 200
     except AppException as e:
         raise
     except Exception as e:
         raise InternalServerError(f"登录失败:{e}")
-    
+
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
     response = make_response(jsonify({"message": "登出成功"}))
@@ -134,7 +136,7 @@ def change_password():
         raise
     except Exception as e:
         raise InternalServerError(f"密码修改失败: {e}")
-    
+
 @auth_bp.route("/add-admin", methods=["POST"])
 @jwt_required
 @require_role("admin")
@@ -175,7 +177,7 @@ def get_users():
         raise
     except Exception as e:
         raise InternalServerError(f"获取用户列表失败: {str(e)}")
-    
+
 @auth_bp.route("/users/<int:user_id>", methods=["DELETE"])
 @jwt_required
 @require_role("admin")
@@ -189,7 +191,7 @@ def delete_user(user_id):
         raise
     except Exception as e:
         raise InternalServerError(f"用户删除失败: {str(e)}")
-    
+
 @auth_bp.route("/admin-change-info", methods=["POST"])
 @jwt_required
 @require_role("admin")

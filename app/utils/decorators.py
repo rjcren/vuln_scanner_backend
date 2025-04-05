@@ -18,15 +18,18 @@ def jwt_required(f):
         token = request.cookies.get("jwt")
         if not token:
             raise Unauthorized("未授权登录")
-    
+        csrf_token_header = request.headers.get("X-CSRF-Token")
+        csrf_token_cookie = request.cookies.get("csrf_token")
+        if not csrf_token_header or not csrf_token_cookie:
+            raise Unauthorized("缺少CSRF Token")
+        if csrf_token_header != csrf_token_cookie:
+            raise Unauthorized("CSRF Token验证失败")
         try:
             payload = SecurityUtils.decode_jwt(token)
             if payload["iat"] > datetime.now(timezone.utc).timestamp():
                 raise Unauthorized("非法请求,请重新登录:非法未来时间Token")
             if payload["exp"] < datetime.now(timezone.utc).timestamp():
                 raise Unauthorized(f"令牌已过期:{str(e)}")
-
-            # 存储用户信息到上下文
             user = User.query.get(payload["sub"])
             if not user:
                 raise Unauthorized("用户状态异常:用户不存在")
@@ -37,7 +40,6 @@ def jwt_required(f):
             }
         except Exception as e:
             raise Unauthorized(f"认证失败: {str(e)}")
-
         return f(*args, **kwargs)
     return decorated_function
 

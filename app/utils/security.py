@@ -1,6 +1,7 @@
 """安全工具（密码哈希、JWT操作）"""
 
 from datetime import datetime, timedelta, timezone
+import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from flask import current_app
@@ -42,6 +43,10 @@ class SecurityUtils:
         except Exception as e:
             current_app.logger.error(f"未知错误: {str(e)}")
             raise InternalServerError("系统内部错误")
+
+    @staticmethod
+    def generate_csrf_token():
+        return secrets.token_hex(16)
 
     @staticmethod
     def decode_jwt(token: str) -> dict:
