@@ -132,4 +132,4 @@ def check_services(app):
             else:
                 app.logger.info("mysql服务已开启")
     except Exception as e:
-        app.logger.warning(f"mysql服务未开启或连接失败", str(e))
+        app.logger.warning(f"mysql服务未开启或连接失败：{str(e)}")

@@ -1,7 +1,7 @@
 """漏洞查询与报告路由"""
 from flask import Blueprint, request, jsonify
 from app.services.vul import VulService
-from app.utils.decorators import jwt_required, require_role
+from app.utils.decorators import api_key_required, jwt_required, require_role
 from app.utils.exceptions import AppException, InternalServerError
 from sqlalchemy import func
 from datetime import datetime, timedelta
@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 vuls_bp = Blueprint("vuls", __name__)
 
 @vuls_bp.route("/vul-list", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_vuls():
     """获取漏洞列表"""
@@ -61,6 +62,7 @@ def get_vuls():
         raise InternalServerError(f"获取漏洞列表错误: {str(e)}")
 
 @vuls_bp.route("/severity-stats", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_severity_stats():
     """获取漏洞严重程度统计"""
@@ -71,6 +73,7 @@ def get_severity_stats():
         raise InternalServerError(f"获取漏洞统计失败: {str(e)}")
 
 @vuls_bp.route("/latest-alerts", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_latest_alerts():
     """获取最新漏洞告警"""
@@ -81,6 +84,7 @@ def get_latest_alerts():
         raise InternalServerError(f"获取最新告警失败: {str(e)}")
 
 @vuls_bp.route("/high-risk-count", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_high_risk_count():
     """获取高风险漏洞数量"""

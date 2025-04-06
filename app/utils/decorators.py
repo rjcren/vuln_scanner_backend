@@ -30,6 +30,7 @@ def jwt_required(f):
                 raise Unauthorized("非法请求,请重新登录:非法未来时间Token")
             if payload["exp"] < datetime.now(timezone.utc).timestamp():
                 raise Unauthorized(f"令牌已过期:{str(e)}")
+            # 存储用户信息到上下文
             user = User.query.get(payload["sub"])
             if not user:
                 raise Unauthorized("用户状态异常:用户不存在")
@@ -48,7 +49,6 @@ def require_role(required_role):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # 从g对象获取当前用户
             if not hasattr(g, "current_user"):
                 raise Unauthorized("需要先进行认证")
             current_role = g.current_user.get("role", "user")
@@ -57,3 +57,14 @@ def require_role(required_role):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+def api_key_required(f):
+    """API密钥验证装饰器"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get("X-API-KEY")
+        print(f"API密钥: {api_key}")
+        # if not api_key or api_key != current_app.config["API_KEY"]:
+        #     raise Unauthorized("无效的API密钥")
+        return f(*args, **kwargs)
+    return decorated_function

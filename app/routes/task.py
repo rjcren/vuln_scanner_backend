@@ -2,13 +2,14 @@
 from flask import Blueprint, g, request, jsonify, send_file
 from app.models.task_log import TaskLog
 from app.services.task import TaskService
-from app.utils.decorators import jwt_required
+from app.utils.decorators import api_key_required, jwt_required
 from app.utils.exceptions import AppException, ValidationError, Forbidden, InternalServerError, ValidationError
 from app.utils.validation import InputValidator
 
 tasks_bp = Blueprint("tasks", __name__)
 
 @tasks_bp.route("/createtask", methods=["POST"])
+@api_key_required
 @jwt_required
 def create_task():
     data = request.get_json()
@@ -39,6 +40,7 @@ def create_task():
         raise InternalServerError(f"任务创建失败:{e}")
 
 @tasks_bp.route("/gettasks", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_tasks():
     try:
@@ -68,6 +70,7 @@ def get_tasks():
 
 
 @tasks_bp.route("/delete", methods=["POST"])
+@api_key_required
 @jwt_required
 def delete_tasks():
     """删除任务"""
@@ -87,6 +90,7 @@ def delete_tasks():
         raise InternalServerError(f"删除任务失败: {e}")
 
 @tasks_bp.route("/<int:task_id>", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_task(task_id):
     try:
@@ -110,6 +114,7 @@ def get_task(task_id):
         raise InternalServerError(f"获取任务详情失败: {e}")
     
 @tasks_bp.route("/running-count", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_running_count():
     """获取运行中的任务数量"""
@@ -122,6 +127,7 @@ def get_running_count():
         raise InternalServerError(f"获取运行中任务数量失败: {str(e)}")
 
 @tasks_bp.route("/status-stats", methods=["GET"])
+@api_key_required
 @jwt_required 
 def get_status_stats():
     """获取任务状态统计"""
@@ -132,6 +138,7 @@ def get_status_stats():
         raise InternalServerError(f"获取任务状态统计失败: {str(e)}")
 
 @tasks_bp.route("/start", methods=["POST"])
+@api_key_required
 @jwt_required
 def start_scan():
     try:
@@ -145,6 +152,7 @@ def start_scan():
         raise InternalServerError(f"启动扫描失败: {e}")
     
 @tasks_bp.route("/stop", methods=["POST"])
+@api_key_required
 def stop_scan():
     try:
         task_id = request.get_json().get("task_id")

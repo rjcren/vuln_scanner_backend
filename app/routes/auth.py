@@ -1,7 +1,7 @@
 """用户认证路由"""
 from flask import Blueprint, g, make_response, request, jsonify
 from app.services.auth import AuthService
-from app.utils.decorators import jwt_required, require_role
+from app.utils.decorators import api_key_required, jwt_required, require_role
 from app.utils.security import SecurityUtils
 from app.utils.exceptions import Forbidden, InternalServerError, AppException
 import logging
@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/register", methods=["POST"])
+@api_key_required
 def register():
     try:
         data = request.get_json()
@@ -30,6 +31,7 @@ def register():
         raise InternalServerError("注册失败")
 
 @auth_bp.route("/login", methods=["POST"])
+@api_key_required
 def login():
     try:
         data = request.get_json()
@@ -58,6 +60,7 @@ def login():
         raise InternalServerError(f"登录失败:{e}")
 
 @auth_bp.route("/logout", methods=["POST"])
+@api_key_required
 def logout():
     response = make_response(jsonify({"message": "登出成功"}))
     # 通过设置过期时间清除cookie
@@ -65,6 +68,7 @@ def logout():
     return response, 200
 
 @auth_bp.route("/me", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_current_user():
     user = g.current_user
@@ -75,11 +79,13 @@ def get_current_user():
     }), 200
 
 @auth_bp.route("/check-session", methods=["GET"])
+@api_key_required
 @jwt_required
 def check_session():
     return jsonify({"status": "valid"}), 200
 
 @auth_bp.route("/getcaptcha", methods=["POST"])
+@api_key_required
 def getCaptcha():
     try:
         email = request.get_json().get("email")
@@ -94,6 +100,7 @@ def getCaptcha():
         raise InternalServerError(f"验证码获取失败{e}")
 
 @auth_bp.route("/account", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_account():
     try:
@@ -105,6 +112,7 @@ def get_account():
         raise InternalServerError(f"用户信息获取失败: {e}")
 
 @auth_bp.route("/change-account", methods=["POST"])
+@api_key_required
 @jwt_required
 def change_account():
     try:
@@ -121,6 +129,7 @@ def change_account():
         raise InternalServerError(f"用户信息修改失败: {e}")
 
 @auth_bp.route("/change-password", methods=["POST"])
+@api_key_required
 @jwt_required
 def change_password():
     try:
@@ -138,6 +147,7 @@ def change_password():
         raise InternalServerError(f"密码修改失败: {e}")
 
 @auth_bp.route("/add-admin", methods=["POST"])
+@api_key_required
 @jwt_required
 @require_role("admin")
 def admin_reg():
@@ -158,6 +168,7 @@ def admin_reg():
         raise InternalServerError(f"用户添加失败{str(e)}")
 
 @auth_bp.route("/get-users", methods=["GET"])
+@api_key_required
 @jwt_required
 @require_role("admin")
 def get_users():
@@ -179,6 +190,7 @@ def get_users():
         raise InternalServerError(f"获取用户列表失败: {str(e)}")
 
 @auth_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@api_key_required
 @jwt_required
 @require_role("admin")
 def delete_user(user_id):
@@ -193,6 +205,7 @@ def delete_user(user_id):
         raise InternalServerError(f"用户删除失败: {str(e)}")
 
 @auth_bp.route("/admin-change-info", methods=["POST"])
+@api_key_required
 @jwt_required
 @require_role("admin")
 def admin_change_info():
@@ -213,6 +226,7 @@ def admin_change_info():
         raise InternalServerError(f"用户信息修改失败: {e}")
 
 @auth_bp.route("/admin-restart-password/<int:user_id>", methods=["GET"])
+@api_key_required
 @jwt_required
 @require_role("admin")
 def admin_start_password(user_id):

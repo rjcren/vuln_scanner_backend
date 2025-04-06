@@ -48,8 +48,7 @@ class ReportService:
             elif report_type == "html":
                 with open(file_path, "w") as file:
                     file.write(content)
-            else:
-                raise ValidationError("不支持的报告类型")
+            else: raise ValidationError("不支持的报告类型")
             self.__save_file(task_info["task_id"], file_path, report_type)
             return file_path
         except AppException:

@@ -1,13 +1,15 @@
 from flask import Blueprint, jsonify, request, send_file
 
 from app.services.report import ReportService
-from app.utils.decorators import jwt_required
+from app.utils.decorators import api_key_required, jwt_required
 from app.utils.exceptions import AppException, InternalServerError
 
 
 report_bp = Blueprint("reports", __name__)
 
+
 @report_bp.route("/report", methods=["POST"])
+@api_key_required
 @jwt_required
 def generate_report():
     try:
@@ -21,28 +23,42 @@ def generate_report():
         raise
     except Exception as e:
         return InternalServerError(f"生成报告失败: {str(e)}")
-    
+
+
 @report_bp.route("/reports", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_reports():
     try:
         reports = ReportService().get_reports()
-        return jsonify({
-            "data": [{
-                "report_id": report.report_id,
-                "task_id": report.task_id,
-                "task_name": report.task.task_name,
-                "url": report.task.target_url,
-                "type": report.type,
-                "created_at": report.generated_at.strftime("%Y-%m-%d %H:%M:%S")
-            } for report in reports]
-        }), 200
+        return (
+            jsonify(
+                {
+                    "data": [
+                        {
+                            "report_id": report.report_id,
+                            "task_id": report.task_id,
+                            "task_name": report.task.task_name,
+                            "url": report.task.target_url,
+                            "type": report.type,
+                            "created_at": report.generated_at.strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                        }
+                        for report in reports
+                    ]
+                }
+            ),
+            200,
+        )
     except AppException as e:
         raise
     except Exception as e:
         return InternalServerError(f"获取报告失败: {str(e)}")
-    
+
+
 @report_bp.route("/report/<int:task_id>", methods=["GET"])
+@api_key_required
 @jwt_required
 def get_report(task_id):
     try:
@@ -52,8 +68,10 @@ def get_report(task_id):
         raise
     except Exception as e:
         return InternalServerError(f"获取报告失败: {str(e)}")
-    
+
+
 @report_bp.route("/report/<int:report_id>", methods=["DELETE"])
+@api_key_required
 @jwt_required
 def delete_report(report_id):
     try:

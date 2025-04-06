@@ -1,7 +1,7 @@
 """用户反馈路由"""
 from flask import Blueprint, g, request, jsonify
 from app.services.feedback import FeedbackService
-from app.utils.decorators import jwt_required
+from app.utils.decorators import api_key_required, jwt_required
 from app.utils.exceptions import InternalServerError, ValidationError, AppException
 import logging
 
@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 feedback_bp = Blueprint("feedback", __name__)
 
 @feedback_bp.route("", methods=["POST"])
+@api_key_required
 @jwt_required
 def submit_feedback():
     try:

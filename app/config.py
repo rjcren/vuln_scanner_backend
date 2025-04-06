@@ -29,6 +29,8 @@ class BaseConfig:
     broker_url = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1')
     result_backend = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/2')
 
+    API_key = os.getenv("API_KEY", "default_api_key")
+
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
 
