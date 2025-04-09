@@ -139,11 +139,13 @@ class TaskService:
     def get_task_status_stats():
         """获取任务状态统计"""
         try:
-            status = db.session.query(
+            query = db.session.query(
                 ScanTask.status,
                 func.count(ScanTask.task_id)
-            ).group_by(ScanTask.status).all()
-            return status
+            ).group_by(ScanTask.status)
+            if g.current_user.get("role") != "admin":
+                query = query.filter_by(user_id=int(g.current_user.get("user_id")))
+            return query.all()
         except Exception as e:
             raise InternalServerError(f"获取任务状态统计失败: {e}")
 

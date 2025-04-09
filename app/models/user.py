@@ -12,7 +12,6 @@ class User(db.Model):
     role = db.Column(db.Enum("user", "admin"), default="user", nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     tasks = db.relationship("ScanTask", backref="user", lazy=True)
-    feedbacks = db.relationship("UserFeedback", backref="user", lazy=True)
 
     def __init__(self, username, email, password, role="user"):
         self.email = email

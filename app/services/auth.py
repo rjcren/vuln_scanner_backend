@@ -32,7 +32,7 @@ class AuthService:
                 db.session.add(admin)
                 db.session.commit()
                 # 将初始密码记录到日志中，供系统管理员首次登录使用
-                logger.info(f"已创建默认账户。初始密码: {default_admin_password}")
+                logger.warning(f"已创建默认账户。初始密码: {default_admin_password}")
                 return default_admin_password
         except Exception as e:
             db.session.rollback()

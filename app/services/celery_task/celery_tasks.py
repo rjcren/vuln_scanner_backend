@@ -56,7 +56,6 @@ def update_task_status(self, group_results, task_id: int):
             if task is None:
                 TaskLog.add_log(task_id, "ERROR", "任务不存在")
                 raise ValidationError("任务不存在")
-            
             if task.status == "running" and group_results:
                 # 判断任务是否成功
                 print(f"group_results:{group_results}")

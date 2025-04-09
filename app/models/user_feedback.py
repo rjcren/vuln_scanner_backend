@@ -8,8 +8,11 @@ class UserFeedback(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     task_id = db.Column(db.Integer, db.ForeignKey("scan_tasks.task_id"), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    status = db.Column(db.Enum("pending", "resolved"), default="pending")
+    status = db.Column(db.Enum("pending", "resolved", "rejected"), default="pending", nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    tasks = db.relationship('ScanTask', back_populates='feedbacks')
+    user = db.relationship('User', backref='feedbacks')
 
     def __repr__(self):
         return f"<UserFeedback {self.feedback_id}>"

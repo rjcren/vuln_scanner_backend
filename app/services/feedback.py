@@ -1,6 +1,7 @@
 """用户反馈服务"""
 from app.models import UserFeedback
 from app.extensions import db
+from app.utils.exceptions import ValidationError
 
 class FeedbackService:
     @staticmethod
@@ -13,3 +14,29 @@ class FeedbackService:
         db.session.add(feedback)
         db.session.commit()
         return feedback
+    
+    @staticmethod
+    def get_all_feedback() -> list:
+        """获取所有反馈列表"""
+        return UserFeedback.query.all()
+
+    @staticmethod
+    def update_feedback_status(feedback_id: int, status: str) -> UserFeedback:
+        """修改指定反馈的状态"""
+        if status not in ["pending", "resolved", "rejected"]:
+            raise ValidationError("无效的反馈状态")
+        feedback = UserFeedback.query.get(feedback_id)
+        if not feedback:
+            raise ValidationError("反馈不存在")
+        feedback.status = status
+        db.session.commit()
+        return feedback
+
+    @staticmethod
+    def delete_feedback(feedback_id: int) -> None:
+        """删除指定的反馈"""
+        feedback = UserFeedback.query.get(feedback_id)
+        if not feedback:
+            raise ValidationError("反馈不存在")
+        db.session.delete(feedback)
+        db.session.commit()

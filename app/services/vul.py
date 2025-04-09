@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta
 from typing import List
 
-from flask import g
+from flask import g, render_template
+from flask_mail import Mail
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Vulnerability, ScanTask
-from app.utils.exceptions import AppException, NotFound, InternalServerError
+from app.utils.exceptions import AppException, NotFound, InternalServerError, ValidationError
 import logging
+
+from app.utils.vul_deduplicator import VulDeduplicator
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +22,8 @@ class VulService:
         try:
             query = Vulnerability.query.options(joinedload(Vulnerability.task))
 
-            if g.current_user["role"] != "admin":
-                query = query.join(Vulnerability.task).filter(ScanTask.user_id == g.current_user["user_id"])
+            if g.current_user.get("role") != "admin":
+                query = query.filter(Vulnerability.task.has(user_id=int(g.current_user.get("user_id"))))
 
             # 添加过滤条件
             if task_ids:
@@ -57,12 +60,15 @@ class VulService:
     def get_severity_stats():
         """获取漏洞严重程度统计"""
         try:
-            status = db.session.query(
+            query = db.session.query(
                 Vulnerability.severity,
                 func.count(Vulnerability.vul_id)
-            ).group_by(Vulnerability.severity).all()
+            ).group_by(Vulnerability.severity)
+
+            if g.current_user.get("role") != "admin":
+                query = query.filter(Vulnerability.task.has(user_id=int(g.current_user.get("user_id"))))
             
-            return status
+            return query.all()
         except Exception as e:
             raise InternalServerError(f"获取漏洞统计失败: {str(e)}")
 
@@ -71,12 +77,14 @@ class VulService:
         """获取最近24小时的漏洞告警"""
         try:
             recent_time = datetime.now() - timedelta(hours=hours)
-            alerts = Vulnerability.query.join(
+            query = Vulnerability.query.join(
                 Vulnerability.task
             ).filter(
                 Vulnerability.time >= recent_time
-            ).order_by(Vulnerability.time.desc()).limit(10).all()
-            
+            ).order_by(Vulnerability.time.desc())
+            if g.current_user.get("role") != "admin":
+                query = query.filter(Vulnerability.task.has(user_id=int(g.current_user.get("user_id"))))
+
             return [{
                 "vul_id": alert.vul_id,
                 "description": alert.description,
@@ -84,7 +92,7 @@ class VulService:
                 "time": alert.time.isoformat(),
                 "task_name": alert.task.task_name if alert.task else "未知任务",
                 "target_url": alert.task.target_url if alert.task else "未知url"
-            } for alert in alerts]
+            } for alert in query.limit(10).all()]
         except Exception as e:
             raise InternalServerError(f"获取最新告警失败: {str(e)}")
 
@@ -95,6 +103,8 @@ class VulService:
             query = Vulnerability.query.filter(
                 Vulnerability.severity.in_(["critical", "high"])
             )
+            if g.current_user.get("role") != "admin":
+                query = query.filter(Vulnerability.task.has(user_id=int(g.current_user.get("user_id"))))
             count = query.count()
             return count
         except Exception as e:
@@ -104,16 +114,42 @@ class VulService:
     def _save_results(task_id: int, results: List[Vulnerability]):
         """保存漏洞结果到数据库"""
         try:
-            existing_scan_ids = db.session.query(Vulnerability.scan_id).filter_by(task_id=task_id).all()
-            existing_scan_ids = [item[0] for item in existing_scan_ids]
+            existing_ids = {
+                sid for (sid,) in db.session.query(Vulnerability.scan_id).filter_by(task_id=task_id).all()
+            }
 
-            for item in results:
-                if item.scan_id not in existing_scan_ids:
-                    item.task_id = task_id
-                    db.session.add(item)
-                
+            dedup = VulDeduplicator(method="embedding", threshold=0.85)
+            unique_results = dedup.get_unique_vulnerabilities(results, existing_ids)
+            
+            db.session.add_all(unique_results)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             logger.error(f"漏洞保存失败: {str(e)}")
             raise InternalServerError(f"漏洞保存失败: {str(e)}")
+        
+    def send_alert_email(task_id: int, vulnerabilities: List[Vulnerability]):
+        """发送告警邮件"""
+        try:
+            # 获取任务信息
+            task = ScanTask.query.options(joinedload(ScanTask.user)).filter_by(task_id=task_id).first()
+            if not task: raise NotFound("任务不存在")
+            user = task.user
+            html_content = render_template(
+                "alert_email_template.html",
+                task_name=task.task_name,
+                target_url=task.target_url,
+                vulnerabilities=vulnerabilities
+            )
+            from flask_mail import Message
+            message = Message(
+                subject=f"任务 {task.task_name} 的告警",
+                recipients=[user.email],
+                html=html_content
+            )
+            mail = Mail()
+            mail.send(message)
+            logger.info(f"告警邮件已发送至 {user.email}")
+        except Exception as e:
+            logger.error(f"发送告警邮件失败: {str(e)}")
+            raise InternalServerError(f"发送告警邮件失败: {str(e)}")

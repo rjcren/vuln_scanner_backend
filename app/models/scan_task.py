@@ -22,6 +22,7 @@ class ScanTask(db.Model):
     vulnerabilities = db.relationship("Vulnerability", back_populates="task", cascade="all, delete", lazy="select")
     risk_reports = db.relationship("RiskReport", back_populates="task", cascade="all, delete", lazy="select")
     task_logs = db.relationship("TaskLog", back_populates="task", cascade="all, delete", lazy="select")
+    feedbacks = db.relationship("UserFeedback", backref="task", cascade="all, delete", lazy="select")
 
     def update_status(self, new_status):
         valid_transitions = {

@@ -40,7 +40,7 @@ def login():
 
         user = AuthService.authenticate_user(email, password)
         jwt_token = SecurityUtils.generate_jwt(user.user_id, user.username, user.role)
-        csrf_token = SecurityUtils.generate_csrf_token(user.user_id, user.username, user.role)
+        csrf_token = SecurityUtils.generate_csrf_token()
 
         response = make_response(jsonify({"message": "登录成功"}))
         response.set_cookie(
