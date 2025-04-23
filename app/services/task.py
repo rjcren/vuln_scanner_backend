@@ -9,6 +9,7 @@ from app.models.task_log import TaskLog
 from app.models.user import User
 from sqlalchemy.orm import joinedload
 from app.services.celery_task.celery_tasks import *
+from app.services.scanner.Xray import XrayScanner
 from app.utils.exceptions import AppException, ValidationError, Forbidden, InternalServerError, NotFound, Unauthorized
 from app.services.scanner.AWVS import AWVS
 from celery.result import AsyncResult
@@ -151,78 +152,85 @@ class TaskService:
 
     @staticmethod
     def start_scan_task(task_id: int):
-        """启动扫描任务"""
         if not TaskService.is_auth(task_id):
             raise Forbidden("无权限访问此任务")
-        
+
         task = ScanTask.query.get(task_id)
         try:
             if task.status != "pending":
                 raise ValidationError("任务状态异常，不可启动！")
-            # 异步任务组
+
+            # 启动 Xray 被动监听（使用端口池分配）
+            xray = XrayScanner()
+            proxy_port = xray.start_scan(task_id)
+            task.xray_port = proxy_port  # 记录端口以便后续关闭监听
+
+            # 配置 AWVS 代理参数（如需通过 proxy 设置，确保 AWVS 支持代理设置 API）
+            awvs = AWVS()
+            awvs.set_proxy(f"http://127.0.0.1:{proxy_port}")  # ← 若你的 AWVS 支持设置代理
+
+            # 创建异步任务组
             task_group_list = []
-            task_group_list.append(save_xray_vuls.s(task_id))
-            awvs_scan_id = AWVS().start_scan(task_id, task.awvs_id)
-            if awvs_scan_id: 
+            task_group_list.append(save_xray_vuls.s(task_id))  # 添加 Xray 结果保存任务
+
+            awvs_scan_id = awvs.start_scan(task_id, task.awvs_id)
+            if awvs_scan_id:
                 task_group_list.append(save_awvs_vuls.s(task_id, awvs_scan_id))
                 task.awvs_id = awvs_scan_id
 
             zap_scan_id = None
             if task.login_info:
-                list = task.login_info.split(",")
-                zap_scan_id = ZAP().start_scan(task_id, task.target_url, task.scan_type, list[0], list[1], list[2])
-            else: zap_scan_id = ZAP().start_scan(task_id, task.target_url, task.scan_type)
-            print(f"zap_scan_id: {zap_scan_id}; awvs_scan_id:{awvs_scan_id}")
+                login = task.login_info.split(",")
+                zap_scan_id = ZAP().start_scan(task_id, task.target_url, task.scan_type, login[0], login[1], login[2])
+            else:
+                zap_scan_id = ZAP().start_scan(task_id, task.target_url, task.scan_type)
 
             if zap_scan_id:
                 task_group_list.append(save_zap_vuls.s(task_id, zap_scan_id, task.target_url))
                 task.zap_id = zap_scan_id
 
-            task_group = group(task_group_list)    
-            # 保存任务ID到数据库
+            # 构建 Celery 任务组并启动
+            task_group = group(task_group_list)
             async_result = chord(task_group, update_task_status.s(task_id=task_id), task_protocol=2).apply_async()
-            print(async_result)
             task.celery_group_id = async_result.id
-            task.celery_task_ids = [t.id for t in async_result.parent.results]  # 获取所有子任务ID
-            # 更新任务状态为 running
+            task.celery_task_ids = [t.id for t in async_result.parent.results]
             task.update_status("running")
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             task.update_status("failed")
             db.session.commit()
+            TaskLog.add_log(task_id, "ERROR", f"启动扫描任务失败：{str(e)}")
             TaskService.stop_scan_task(task_id)
-            TaskLog.add_log(task_id, "ERROR", f"启动扫描任务失败")
             raise InternalServerError(f"启动扫描任务失败: {str(e)}")
 
     @staticmethod
     def stop_scan_task(task_id: int):
-        """停止扫描任务"""
         if not TaskService.is_auth(task_id):
             raise Forbidden("无权限操作此任务")
-        
+
         task = ScanTask.query.get(task_id)
         try:
             if task.status == "pending":
                 raise ValidationError("任务未在运行中")
-            
-            # 停止所有 Celery 任务
+
             if task.celery_group_id:
                 group_result = AsyncResult(task.celery_group_id)
-                group_result.revoke(terminate=True, signal='SIGTERM')  # 终止顶层任务
-            
+                group_result.revoke(terminate=True, signal='SIGTERM')
+
             if task.celery_task_ids:
-                for task_id in task.celery_task_ids:
-                    task_result = AsyncResult(task_id)
-                    task_result.revoke(terminate=True, signal='SIGTERM')  # 终止子任务
+                for tid in task.celery_task_ids:
+                    AsyncResult(tid).revoke(terminate=True, signal='SIGTERM')
 
             AWVS().stop_scan(task.awvs_id)
             ZAP().stop_scan(task.zap_id)
 
-            # 更新任务状态
+            # 终止 Xray 被动监听（回收端口）
+            XrayScanner().stop_scan(task_id)
+
             task.update_status("completed")
             db.session.commit()
-            TaskLog.add_log(task_id, "INFO", "任务已手动终止")
+            TaskLog.add_log(task_id, "INFO", "任务已被系统终止")
             return True
         except AppException:
             db.session.rollback()

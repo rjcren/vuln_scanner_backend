@@ -24,10 +24,20 @@ class XrayScanner:
         try:
             port = self.port_pool.allocate(task_id)
             output_file = os.path.join(self.output_dir, f"{task_id}_xray.json")
-            cmd = [self.xray_path,"webscan","--listen", f"127.0.0.1:{port}","--json-output", output_file]
-            process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            cmd = [self.xray_path, "webscan", "--listen", f"127.0.0.1:{port}", "--json-output", output_file]
+            
+            # 设置工作目录为 Xray 所在目录
+            process = subprocess.Popen(cmd, cwd="/home/kali/xray/", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+
+            if process.returncode != 0:
+                logger.error(f"[Xray] 启动失败，返回码: {process.returncode}")
+                logger.error(f"[Xray] 标准输出: {stdout.decode()}")
+                logger.error(f"[Xray] 错误输出: {stderr.decode()}")
+                raise InternalServerError("Xray 启动失败")
+
             self.task_processes[task_id] = {"process": process, "port": port, "output": output_file}
-            TaskLog.add_log(f"Xray监听中")
+            TaskLog.add_log(task_id, "INFO", f"Xray监听中，端口: {port}")
             logger.info(f"[Xray] 启动任务 {task_id}：端口 {port}，输出 {output_file}")
             return port
         except Exception as e:
@@ -77,7 +87,6 @@ class XrayScanner:
         except Exception as e:
             logger.error(f"Xray结果解析失败: {str(e)}")
         return False
-
 
 import threading
 import socket

@@ -24,6 +24,8 @@ class BaseConfig:
     AWVS_API_KEY = os.getenv("AWVS_API_KEY", "none")
     ZAP_API_URL = os.getenv("ZAP_API_URL", "https://127.0.0.1:8080").strip("/")
     ZAP_API_KEY = os.getenv("ZAP_API_KEY", "none")
+    XRAY_OUTPUT_PATH = os.getenv("XRAY_OUTPUT_PATH", "/tmp/xray_output.json")
+    XRAY_PATH = os.getenv("XRAY_PATH", "/usr/local/bin/xray")
 
     # Celery配置
     broker_url = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1')

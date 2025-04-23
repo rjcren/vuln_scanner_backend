@@ -11,8 +11,8 @@ class UserFeedback(db.Model):
     status = db.Column(db.Enum("pending", "resolved", "rejected"), default="pending", nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     
-    tasks = db.relationship('ScanTask', back_populates='feedbacks')
     user = db.relationship('User', backref='feedbacks')
+    task = db.relationship('ScanTask', back_populates='feedbacks')
 
     def __repr__(self):
         return f"<UserFeedback {self.feedback_id}>"

@@ -8,6 +8,7 @@ class ScanTask(db.Model):
     task_id = db.Column(db.Integer, primary_key=True)
     awvs_id = db.Column(db.String(40), unique=True)
     zap_id = db.Column(db.String(10), unique=True)
+    xray_port = db.Column(db.Integer, nullable=True)
     task_name = db.Column(db.String(255), nullable=False, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     target_url = db.Column(db.String(255), nullable=False)
@@ -22,7 +23,7 @@ class ScanTask(db.Model):
     vulnerabilities = db.relationship("Vulnerability", back_populates="task", cascade="all, delete", lazy="select")
     risk_reports = db.relationship("RiskReport", back_populates="task", cascade="all, delete", lazy="select")
     task_logs = db.relationship("TaskLog", back_populates="task", cascade="all, delete", lazy="select")
-    feedbacks = db.relationship("UserFeedback", backref="task", cascade="all, delete", lazy="select")
+    feedbacks = db.relationship("UserFeedback", back_populates="task", cascade="all, delete", lazy="select")
 
     def update_status(self, new_status):
         valid_transitions = {
