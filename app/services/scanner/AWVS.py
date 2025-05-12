@@ -47,7 +47,7 @@ class AWVS:
             "full": "11111111-1111-1111-1111-111111111111",
             "quick": "11111111-1111-1111-1111-111111111112",
             "xss": "11111111-1111-1111-1111-111111111116",
-            "sqli": "11111111-1111-1111-1111-111111111113",
+            "sql": "11111111-1111-1111-1111-111111111113",
             "pass": "11111111-1111-1111-1111-111111111115",
             "crawl_only": "11111111-1111-1111-1111-111111111117",
         }
@@ -108,6 +108,31 @@ class AWVS:
             TaskLog.add_log(task_id, "ERROR", "AWVS扫描启动失败")
             logger.error(f"AWVS启动扫描失败 {str(e)}")
         return None
+    
+    def set_proxy(self, task_id, target_id, port):
+        try:
+            data = {
+                "proxy": {
+                    "address": "127.0.0.1",
+                    "enabled": True,
+                    "port": port,
+                    "protocol": "http"
+                }
+            }
+            res = requests.patch(
+                f"{self.targets_api}/{target_id}/configuration",
+                headers=self.auth_headers,
+                json=data,
+                verify=False,
+            )
+            if res.status_code >= 200 and res.status_code < 300:
+                TaskLog.add_log(task_id, "INFO", "AWVS设置代理成功")
+            else:
+                error_message = f"HTTP {res.status_code}: {res.text}"
+                TaskLog.add_log(task_id, "ERROR", f"AWVS设置代理失败: {error_message}")
+        except Exception as e:
+            TaskLog.add_log(task_id, "ERROR", "AWVS设置代理失败")
+            logger.error(f"AWVS设置代理失败 {str(e)}")
 
     def delete(self, scan_id):
         try:
@@ -184,7 +209,7 @@ class AWVS:
         try:
             res = self.get_scan(scan_id)
             progress = res.get("current_session", {}).get("progress")
-            # print(f"AWVS漏洞详情: {res}")
+            print(f"AWVS漏洞详情: {res}")
             session_id = res.get("current_session", {}).get("scan_session_id")
             if (
                 not session_id

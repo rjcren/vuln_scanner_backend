@@ -47,12 +47,12 @@ def get_all_feedback():
                 "task_name": fb.task.task_name if fb.task else None,
                 "description": fb.description,
                 "status": fb.status,
+                "receipt": fb.receipt,
                 "created_at": fb.created_at.isoformat() if fb.created_at else None
             })
         return jsonify(data), 200
     except Exception as e:
-        logger.error(f"获取反馈列表失败: {e}", exc_info=True)
-        raise InternalServerError("获取反馈列表失败")
+        raise InternalServerError(f"获取反馈列表失败: {str(e)}")
 
 @feedback_bp.route("/<int:feedback_id>", methods=["PATCH"])
 @api_key_required
@@ -74,8 +74,7 @@ def update_feedback(feedback_id: int):
     except AppException as e:
         raise
     except Exception as e:
-        logger.error(f"更新反馈状态失败: {e}", exc_info=True)
-        raise InternalServerError("更新反馈状态失败")
+        raise InternalServerError(f"更新反馈状态失败: {str(e)}")
 
 @feedback_bp.route("/<int:feedback_id>", methods=["DELETE"])
 @api_key_required
@@ -89,5 +88,21 @@ def delete_feedback(feedback_id: int):
     except AppException as e:
         raise
     except Exception as e:
-        logger.error(f"删除反馈失败: {e}", exc_info=True)
-        raise InternalServerError("删除反馈失败")
+        raise InternalServerError(f"删除反馈失败: {str(e)}")
+    
+@feedback_bp.route("/<int:feedback_id>/receipt", methods=["POST"])
+@api_key_required
+@jwt_required
+@require_role("admin")
+def receipt_msg(feedback_id: int):
+    """发送回执"""
+    try:
+        message = request.get_json().get("message")
+        if not message:
+            raise ValidationError("缺少必要参数")
+        FeedbackService.send_receipt(feedback_id, message)
+        return jsonify({"message": "回执已发送"}), 200
+    except AppException as e:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"发送回执失败: {e}")

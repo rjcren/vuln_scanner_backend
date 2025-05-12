@@ -160,31 +160,25 @@ class TaskService:
             if task.status != "pending":
                 raise ValidationError("任务状态异常，不可启动！")
 
-            # 启动 Xray 被动监听（使用端口池分配）
-            xray = XrayScanner()
-            proxy_port = xray.start_scan(task_id)
-            task.xray_port = proxy_port  # 记录端口以便后续关闭监听
-
-            # 配置 AWVS 代理参数（如需通过 proxy 设置，确保 AWVS 支持代理设置 API）
-            awvs = AWVS()
-            awvs.set_proxy(f"http://127.0.0.1:{proxy_port}")  # ← 若你的 AWVS 支持设置代理
-
             # 创建异步任务组
             task_group_list = []
-            task_group_list.append(save_xray_vuls.s(task_id))  # 添加 Xray 结果保存任务
+            awvs = AWVS()
+            if task.scan_type == "full":
+                # 启动 Xray 被动监听（使用端口池分配）
+                xray = XrayScanner()
+                proxy_port = xray.start_scan(task_id)
+                task.xray_port = proxy_port
 
-            awvs_scan_id = awvs.start_scan(task_id, task.awvs_id)
+                awvs.set_proxy(task.task_id, task.awvs_id, proxy_port)
+                task_group_list.append(save_xray_vuls.s(task_id))  # 添加 Xray 结果保存任务
+            else: TaskLog.add_log(task_id, "INFO", "该扫描类型不启动Xray")
+
+            awvs_scan_id = awvs.start_scan(task_id, task.awvs_id, task.scan_type)
             if awvs_scan_id:
                 task_group_list.append(save_awvs_vuls.s(task_id, awvs_scan_id))
                 task.awvs_id = awvs_scan_id
 
-            zap_scan_id = None
-            if task.login_info:
-                login = task.login_info.split(",")
-                zap_scan_id = ZAP().start_scan(task_id, task.target_url, task.scan_type, login[0], login[1], login[2])
-            else:
-                zap_scan_id = ZAP().start_scan(task_id, task.target_url, task.scan_type)
-
+            zap_scan_id = ZAP().start_scan(task_id, task.target_url, task.scan_type, task.login_info)
             if zap_scan_id:
                 task_group_list.append(save_zap_vuls.s(task_id, zap_scan_id, task.target_url))
                 task.zap_id = zap_scan_id
@@ -229,6 +223,7 @@ class TaskService:
             XrayScanner().stop_scan(task_id)
 
             task.update_status("completed")
+            task.finished_at = datetime.now()
             db.session.commit()
             TaskLog.add_log(task_id, "INFO", "任务已被系统终止")
             return True

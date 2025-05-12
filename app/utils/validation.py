@@ -1,9 +1,6 @@
 """ 输入验证"""
-
 import re
 from urllib.parse import urlparse
-from app.utils.exceptions import ValidationError
-
 
 class InputValidator:
     @staticmethod
@@ -32,3 +29,11 @@ class InputValidator:
     def validate_password(password: str) -> bool:
         """验证密码强度（至少8位，包含大小写字母和数字）"""
         return re.match(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$", password) is not None
+    
+    @staticmethod
+    def validate_email(email: str) -> bool:
+        """验证邮箱格式"""
+        email_regex = re.compile(
+            r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        )
+        return email_regex.match(email)

@@ -9,3 +9,4 @@ migrations/
 ./app/logs/*
 tests/*
 .env
+reports/

@@ -9,6 +9,7 @@ class UserFeedback(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey("scan_tasks.task_id"), nullable=False)
     description = db.Column(db.Text, nullable=False)
     status = db.Column(db.Enum("pending", "resolved", "rejected"), default="pending", nullable=False)
+    receipt = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.now)
     
     user = db.relationship('User', backref='feedbacks')

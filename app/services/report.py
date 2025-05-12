@@ -2,7 +2,7 @@
 import os
 import secrets
 import string
-import pdfkit
+from playwright.sync_api import sync_playwright
 from app.models.risk_report import RiskReport
 from sqlalchemy.orm import joinedload
 from app.extensions import db
@@ -14,8 +14,20 @@ from app.services.task import TaskService
 from app.utils.exceptions import AppException, Forbidden, InternalServerError, ValidationError
 
 class ReportService:
+    _browser = None
+
+    @classmethod
+    def _get_browser(cls):
+        if not cls._browser or cls._browser.is_connected():
+            playwright = sync_playwright().start()
+            cls._browser = playwright.chromium.launch(
+                headless=True,
+                args=["--disable-gpu", "--no-sandbox"]
+            )
+        return cls._browser
+
     def generate_report(self, task_id: int, report_type: str = "pdf") -> str:
-        """生成漏洞报告"""
+        """生成漏洞报告 (集成 Playwright)"""
         try:
             if not TaskService.is_auth(task_id):
                 raise Forbidden("无权限操作此任务")
@@ -23,9 +35,11 @@ class ReportService:
                 raise ValidationError("不支持的报告格式")
             
             task = TaskService.get_task(task_id)
+            # 检查现有报告缓存
             for report in task.risk_reports:
                 if report_type == report.type:
                     return report.path
+
             task_info = {
                 "task_id": task.task_id,
                 "task_name": task.task_name,
@@ -39,18 +53,42 @@ class ReportService:
                 "vulnerabilities": [vuln.to_dict() for vuln in task.vulnerabilities] if task.vulnerabilities else []
             }
 
-            characters = string.ascii_letters + string.digits
-            random_string = ''.join(secrets.choice(characters) for _ in range(6))
+            # 生成唯一文件名
+            random_string = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(6))
             content = render_template("report_template.html", content=task_info)
             file_path = self.create_dir(f"report_{task_info['task_id']}_{random_string}.{report_type}")
+
             if report_type == "pdf":
-                pdfkit.from_string(content, file_path)
+                # 使用 Playwright 生成 PDF
+                browser = self._get_browser()
+                page = browser.new_page()
+                
+                try:
+                    page.set_content(content)
+                    # 配置 PDF 选项
+                    pdf_options = {
+                        "format": "A4",
+                        "print_background": True,
+                        "margin": {"top": "20mm", "right": "20mm", "bottom": "20mm", "left": "20mm"},
+                        "prefer_css_page_size": True
+                    }
+                    pdf_bytes = page.pdf(**pdf_options)
+                    
+                    # 保存 PDF 文件
+                    with open(file_path, "wb") as f:
+                        f.write(pdf_bytes)
+                finally:
+                    page.close()
             elif report_type == "html":
-                with open(file_path, "w") as file:
+                with open(file_path, "w", encoding="utf-8") as file:
                     file.write(content)
-            else: raise ValidationError("不支持的报告类型")
+            else:
+                raise ValidationError("不支持的报告类型")
+
+            # 保存记录到数据库（原有逻辑保留）
             self.__save_file(task_info["task_id"], file_path, report_type)
             return file_path
+
         except AppException:
             raise
         except Exception as e:

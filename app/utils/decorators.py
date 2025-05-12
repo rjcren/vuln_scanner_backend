@@ -37,6 +37,7 @@ def jwt_required(f):
             g.current_user = {
                 "user_id": payload["sub"],
                 "username": user.username,
+                "email": user.email,
                 "role": user.role,
             }
         except Exception as e:

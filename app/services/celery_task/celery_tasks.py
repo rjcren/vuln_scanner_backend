@@ -78,6 +78,17 @@ def update_task_status(self, group_results, task_id: int):
             TaskLog.add_log(task_id, "ERROR", f"更新任务状态失败: {str(e)}")
             raise
 
+@celery.task(bind=True, max_retries=5)
+def start_scan():
+    from flask import current_app as app
+    with app.app_context():
+        try:
+            # 这里是启动扫描的逻辑
+            pass
+        except Exception as e:
+            logger.error(f"启动扫描失败: {str(e)}")
+            raise
+
 @celery.task
 def test():
     return True

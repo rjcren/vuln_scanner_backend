@@ -11,6 +11,8 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     role = db.Column(db.Enum("user", "admin"), default="user", nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    force_reset = db.Column(db.Boolean, default=False, nullable=False)
+
     tasks = db.relationship("ScanTask", backref="user", lazy=True)
 
     def __init__(self, username, email, password, role="user"):

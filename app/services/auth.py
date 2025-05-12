@@ -6,7 +6,7 @@ from flask import g
 from sqlalchemy import or_
 from app.models import User
 from app.extensions import db, redis_client, mail
-from app.utils.exceptions import AppException, ValidationError, Conflict, InternalServerError, Unauthorized, ValidationError
+from app.utils.exceptions import AppException, NotFound, ValidationError, Conflict, InternalServerError, Unauthorized, ValidationError
 from app.utils.validation import InputValidator
 from flask_mail import Message
 import random
@@ -26,7 +26,8 @@ class AuthService:
                     username="admin",
                     password=default_admin_password,  # 密码会在User模型中自动加密
                     email="admin@admin.com",
-                    role="admin"
+                    role="admin",
+                    force_reset=True
                 )
                 admin.user_id = 1
                 db.session.add(admin)
@@ -93,6 +94,27 @@ class AuthService:
             raise InternalServerError(f"邮件服务器连接失败: SMTP协议错误,{e}")
         except Exception as e:
             raise InternalServerError(f"邮件发送服务异常: 未知邮件错误: {str(e)}")
+        
+    @staticmethod
+    def reset_password(email: str, code: str, new_password: str):
+        try:
+            stored_captcha = redis_client.get(f"captcha:{email}")
+            if not stored_captcha:
+                raise ValidationError("验证码已过期或未发送")
+            if stored_captcha.decode("utf-8") != code:
+                raise ValidationError("验证码错误")
+            redis_client.delete(f"captcha:{email}")
+
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                raise NotFound("用户不存在")
+            user.password = new_password
+            db.session.commit()
+        except AppException:
+            raise
+        except Exception as e:
+            db.session.rollback()
+            raise InternalServerError(f"密码重置失败: {str(e)}")
 
     @staticmethod
     def change_account(user_id:str,username: str):
@@ -145,7 +167,8 @@ class AuthService:
                 username=username,
                 password=password,
                 email=email,
-                role=role
+                role=role,
+                force_reset=True
             )
             db.session.add(user)
             db.session.commit()
@@ -191,4 +214,18 @@ class AuthService:
             db.session.delete(user)
             db.session.commit()
         except Exception as e: 
+            db.session.rollback()
             InternalServerError(f"删除用户失败: {str(e)}")
+
+    @staticmethod
+    def reset_admin_info(new_email, new_password):
+        try:
+            user_id = g.current_user["user_id"]
+            user = AuthService.get_account(user_id)
+            user.email = new_email
+            user.password = new_password
+            user.force_reset = False
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            InternalServerError(f"修改信息失败: {str(e)}")

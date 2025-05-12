@@ -48,9 +48,11 @@ nvidia-nvtx-cu12==12.4.127
 packaging==24.2
 pdfkit==1.0.0
 pillow==11.1.0
+playwright==1.52.0
 pluggy==1.5.0
 prompt_toolkit==3.0.50
 pycparser==2.22
+pyee==13.0.0
 PyJWT==2.10.1
 PyMySQL==1.1.1
 pytest==8.3.4

@@ -118,7 +118,7 @@ class VulService:
                 sid for (sid,) in db.session.query(Vulnerability.scan_id).filter_by(task_id=task_id).all()
             }
 
-            dedup = VulDeduplicator(method="embedding", threshold=0.85)
+            dedup = VulDeduplicator()
             unique_results = dedup.get_unique_vulnerabilities(results, existing_ids)
             
             db.session.add_all(unique_results)

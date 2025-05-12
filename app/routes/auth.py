@@ -3,8 +3,10 @@ from flask import Blueprint, g, make_response, request, jsonify
 from app.services.auth import AuthService
 from app.utils.decorators import api_key_required, jwt_required, require_role
 from app.utils.security import SecurityUtils
-from app.utils.exceptions import Forbidden, InternalServerError, AppException
+from app.utils.exceptions import Forbidden, InternalServerError, AppException, ValidationError
 import logging
+
+from app.utils.validation import InputValidator
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
@@ -41,17 +43,9 @@ def login():
         user = AuthService.authenticate_user(email, password)
         jwt_token = SecurityUtils.generate_jwt(user.user_id, user.username, user.role)
         csrf_token = SecurityUtils.generate_csrf_token()
-
-        response = make_response(jsonify({"message": "登录成功"}))
-        response.set_cookie(
-            "jwt",
-            jwt_token,
-            domain="192.168.125.1",  # 匹配所有子域名
-            httponly=True,
-            secure=True,  # 开发环境关闭
-            samesite="None",
-            path="/"
-        )
+        if user.force_reset: response = make_response(jsonify({"message": "首次登录需要重设邮箱和密码", "force_reset": True}))
+        else: response = make_response(jsonify({"message": "登录成功"}))
+        response.set_cookie("jwt", jwt_token, domain="192.168.125.1", httponly=True, secure=True, samesite="None", path="/")
         response.set_cookie("csrf_token", csrf_token, httponly=False, secure=True, samesite="Strict")
         return response, 200
     except AppException as e:
@@ -75,6 +69,7 @@ def get_current_user():
     return jsonify({
         "user_id": user["user_id"],
         "username": user["username"],
+        "email": user["email"],
         "role": user["role"]
     }), 200
 
@@ -89,8 +84,12 @@ def check_session():
 def getCaptcha():
     try:
         email = request.get_json().get("email")
+        if not email:
+            raise ValidationError("邮箱不能为空")
+        if not InputValidator.validate_email(email):
+            raise ValidationError("无效的邮箱格式")
         from app.services.auth import AuthService
-        res = AuthService.sendCaptcha(email)
+        AuthService.sendCaptcha(email)
         return jsonify({
             "message": "验证码获取成功"
         }), 200
@@ -98,6 +97,30 @@ def getCaptcha():
         raise
     except Exception as e:
         raise InternalServerError(f"验证码获取失败{e}")
+    
+@auth_bp.route("/reset-password", methods=["POST"])
+@api_key_required
+def reset_password():
+    try:
+        data = request.get_json()
+        email = data.get("email")
+        code = data.get("code")
+        new_password = data.get("password")
+        confirm_password = data.get("confirmPassword")
+
+        if not email or not code or not new_password or not confirm_password:
+            raise ValidationError("所有字段均为必填项")
+        if new_password != confirm_password:
+            raise ValidationError("两次输入的密码不一致")
+        if not InputValidator.validate_password(new_password):
+            raise ValidationError("密码至少8位，包含大小写字母和数字")
+
+        AuthService.reset_password(email, code, new_password)
+        return jsonify({"message": "密码重置成功"}), 200
+    except AppException:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"密码重置失败: {str(e)}")
 
 @auth_bp.route("/account", methods=["GET"])
 @api_key_required
@@ -241,3 +264,26 @@ def admin_start_password(user_id):
         raise
     except Exception as e:
         raise InternalServerError(f"密码修改失败: {e}")
+
+@auth_bp.route("/force-reset", methods=["POST"])
+@api_key_required
+@jwt_required
+@require_role("admin")
+def reset_admin_info():
+    try:
+        data = request.get_json()
+        new_email = data.get("email")
+        new_password = data.get("password")
+
+        if not InputValidator.validate_email(new_email):
+            raise ValidationError("无效的邮箱格式")
+        if not InputValidator.validate_password(new_password):
+            raise ValidationError("密码至少8位，包含大小写字母和数字")
+
+        AuthService.reset_admin_info(new_email, new_password)
+
+        return jsonify({"message": "管理员信息重设成功"}), 200
+    except AppException:
+        raise
+    except Exception as e:
+        raise InternalServerError(f"管理员信息重设失败: {e}")

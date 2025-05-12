@@ -1,6 +1,8 @@
 """用户反馈服务"""
+from flask import g
+from flask_mail import Message
 from app.models import UserFeedback
-from app.extensions import db
+from app.extensions import db, mail
 from app.utils.exceptions import ValidationError
 
 class FeedbackService:
@@ -39,4 +41,16 @@ class FeedbackService:
         if not feedback:
             raise ValidationError("反馈不存在")
         db.session.delete(feedback)
+        db.session.commit()
+
+    @staticmethod
+    def send_receipt(feedback_id: int, msg) -> None:
+        """发送反馈确认邮件"""
+        feedback = UserFeedback.query.get(feedback_id)
+        if not feedback:
+            raise ValidationError("反馈不存在")
+        email = feedback.user.email
+        message = Message(subject="漏洞检测系统反馈回执", recipients=[email], body=f"您的反馈已被管理员{g.current_user["username"]}处理，反馈回执如下：\n{msg}")
+        mail.send(message)
+        feedback.receipt = f"{feedback.receipt}\n{g.current_user["username"]}回复{msg}"
         db.session.commit()
