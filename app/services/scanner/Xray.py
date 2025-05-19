@@ -14,12 +14,15 @@ from app.utils.exceptions import InternalServerError
 
 logger = logging.getLogger(__name__)
 
-class XrayScanner:
-    def __init__(self):
-        self.xray_path = current_app.config["XRAY_PATH"]
-        self.output_dir = current_app.config["XRAY_OUTPUT_PATH"]
+class Xray:
+    def __init__(self, xray_path=None, output_dir=None):
+        self.xray_path = xray_path
+        self.output_dir = output_dir
         self.port_pool = PortPool(7777, 7799)
         self.task_processes = {}
+        if not self.xray_path or not self.output_dir:
+            raise ValueError("Missing required configuration: XRAY_PATH or XRAY_OUTPUT_PATH")
+        
         os.makedirs(self.output_dir, exist_ok=True)
 
     def start_scan(self, task_id):

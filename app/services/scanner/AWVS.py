@@ -248,6 +248,7 @@ class AWVS:
                         )
                         vul_detail_list.append(
                             Vulnerability(
+                                task_id=task_id,
                                 scan_id=vul.get("vuln_id"),
                                 scan_source="AWVS",
                                 vul_type=vul_detail.get("vt_name"),
@@ -268,7 +269,7 @@ class AWVS:
                 if vul_detail_list:
                     VulService._save_results(task_id, vul_detail_list)
             res = self.get_scan(scan_id)
-            new_progress = res.get("current_session", {}).get("progress")
+            new_progress = res.get("current_session", {}).get("progress", 100)
             if (new_progress == 100 and progress < 100) or new_progress < 100:
                 return False
             return True

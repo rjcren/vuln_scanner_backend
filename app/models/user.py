@@ -15,11 +15,12 @@ class User(db.Model):
 
     tasks = db.relationship("ScanTask", backref="user", lazy=True)
 
-    def __init__(self, username, email, password, role="user"):
+    def __init__(self, username, email, password, role="user", force_reset=False):
         self.email = email
         self.username = username
         self.password = password
         self.role = role
+        self.force_reset = force_reset
 
     @property
     def password(self):

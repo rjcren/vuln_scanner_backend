@@ -19,6 +19,8 @@ class BaseConfig:
 
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "mysql+pymysql://root:root@127.0.0.1:3306/vuln_scanner?charset=utf8")
 
+    MODEL_PATH = os.getenv("MODEL_PATH", "/opt/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+    
     # 扫描工具配置
     AWVS_API_URL = os.getenv("AWVS_API_URL", "https://127.0.0.1:3443").strip("/")
     AWVS_API_KEY = os.getenv("AWVS_API_KEY", "none")

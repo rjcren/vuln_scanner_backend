@@ -41,9 +41,7 @@ class ZAP:
         }
 
         policy_config = SCAN_POLICIES.get(scan_type)
-        if not policy_config:
-            TaskLog.add_log(task_id, "ERROR", f"无效扫描类型: {scan_type}")
-            return None
+        if not policy_config: return None
 
         try:
             context_name = f"ScanContext_{task_id}"
@@ -157,27 +155,8 @@ class ZAP:
         try:
             alerts = self.get_alerts(task_id, url)
             print(f"ZAP漏洞详情：{alerts}")
-            vul_list = []
-            severity_map = {
-                "0": "info",
-                "1": "low",
-                "2": "medium",
-                "3": "high",
-                "4": "critical",
-            }
-            for alert in alerts:
-                vul = Vulnerability(
-                    scan_id=alert.get("id"),
-                    scan_source="ZAP",
-                    vul_type=alert.get("name"),
-                    severity=severity_map.get(alert.get("risk"), "info"),
-                    description=alert.get("description"),
-                    details=alert.get("solution"),
-                    solution=alert.get("reference"),
-                    time=datetime.now(),
-                )
-                vul_list.append(vul)
-
+            
+            vul_list = self._parse_vulnerability(alerts)
             if vul_list:
                 VulService._save_results(task_id, vul_list)
 
@@ -191,3 +170,25 @@ class ZAP:
         except Exception as e:
             TaskLog.add_log(task_id, "ERROR", f"保存ZAP漏洞失败: {str(e)}")
             raise InternalServerError(f"保存ZAP漏洞失败: {str(e)}")
+        
+    def _parse_vulnerability(self, data):
+        vul_list = []
+        severity_map = {
+            "0": "info",
+            "1": "low",
+            "2": "medium",
+            "3": "high",
+            "4": "critical",
+        }
+        for alert in data:
+            vul = Vulnerability(
+                scan_id=alert.get("id"),
+                scan_source="ZAP",
+                vul_type=alert.get("name"),
+                severity=severity_map.get(alert.get("risk"), "info"),
+                description=alert.get("description"),
+                details=alert.get("solution"),
+                solution=alert.get("reference"),
+                time=datetime.now(),
+            )
+            vul_list.append(vul)

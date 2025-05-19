@@ -1,6 +1,6 @@
 """任务管理"""
 from celery import chain, chord, group
-from flask import g
+from flask import g, current_app
 import requests
 from sqlalchemy import func, or_
 from app.models.scan_task import ScanTask
@@ -9,12 +9,23 @@ from app.models.task_log import TaskLog
 from app.models.user import User
 from sqlalchemy.orm import joinedload
 from app.services.celery_task.celery_tasks import *
-from app.services.scanner.Xray import XrayScanner
+from app.services.scanner.Xray import Xray
 from app.utils.exceptions import AppException, ValidationError, Forbidden, InternalServerError, NotFound, Unauthorized
 from app.services.scanner.AWVS import AWVS
 from celery.result import AsyncResult
 
 class TaskService:
+    xray = None  # 类变量
+    
+    @classmethod
+    def init_xray(cls, app):
+        """初始化Xray扫描器"""
+        if cls.xray is None:
+            cls.xray = Xray(
+                xray_path=app.config["XRAY_PATH"],
+                output_dir=app.config["XRAY_OUTPUT_PATH"]
+            )
+
     @staticmethod
     def create_task(user_id: int, task_name: str, target_url: str, scan_type: str, login_url, login_username, login_password):
         # 创建任务记录
@@ -164,13 +175,14 @@ class TaskService:
             task_group_list = []
             awvs = AWVS()
             if task.scan_type == "full":
-                # 启动 Xray 被动监听（使用端口池分配）
-                xray = XrayScanner()
-                proxy_port = xray.start_scan(task_id)
+                # 使用类变量xray
+                if not TaskService.xray:
+                    raise InternalServerError("Xray扫描器未初始化")
+                proxy_port = TaskService.xray.start_scan(task_id)
                 task.xray_port = proxy_port
 
                 awvs.set_proxy(task.task_id, task.awvs_id, proxy_port)
-                task_group_list.append(save_xray_vuls.s(task_id))  # 添加 Xray 结果保存任务
+                task_group_list.append(save_xray_vuls.s(task_id))
             else: TaskLog.add_log(task_id, "INFO", "该扫描类型不启动Xray")
 
             awvs_scan_id = awvs.start_scan(task_id, task.awvs_id, task.scan_type)
@@ -218,9 +230,8 @@ class TaskService:
 
             AWVS().stop_scan(task.awvs_id)
             ZAP().stop_scan(task.zap_id)
-
-            # 终止 Xray 被动监听（回收端口）
-            XrayScanner().stop_scan(task_id)
+            if TaskService.xray:
+                TaskService.xray.stop_scan(task_id)
 
             task.update_status("completed")
             task.finished_at = datetime.now()

@@ -1,8 +1,8 @@
+from flask_sqlalchemy import SQLAlchemy
 from celery import Celery
+from flask_migrate import Migrate
 from flask import Flask
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 import os
 from flask_mail import Mail
 import redis
@@ -10,18 +10,13 @@ import redis
 mail = Mail()
 db = SQLAlchemy()
 migrate = Migrate()
+celery = Celery()
 
 redis_url = os.getenv("REDIS_URI", "redis://localhost:6379/0")
 redis_client = redis.Redis.from_url(redis_url)
 
-celery: Celery = None
-
 def make_celery(app):
-    global celery
-    celery = Celery(app.import_name)
-
-    # 从 Flask 配置更新 Celery 配置
-    celery.conf.update(app.config)
+    """初始化 Celery"""
     celery.conf.update(
         broker_connection_retry_on_startup=True,
         worker_hijack_root_logger = False,
@@ -48,9 +43,8 @@ def make_celery(app):
 
     # 在设置完所有配置后再自动发现任务
     celery.autodiscover_tasks(['app.celery_task'], force=True)
-    
     return celery
-    
+
 def init_extensions(app: Flask):
     """统一初始化所有扩展"""
     # 初始化数据库、邮件等
