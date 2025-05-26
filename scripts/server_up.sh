@@ -2,4 +2,4 @@
 service mysql start
 
 # 启动celery
-celery -A celery_worker.celery worker --loglevel=info
+celery -A celery_worker.celery worker --loglevel=info --concurrency=1

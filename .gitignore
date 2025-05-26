@@ -10,3 +10,4 @@ migrations/
 tests/*
 .env
 reports/
+language-models/

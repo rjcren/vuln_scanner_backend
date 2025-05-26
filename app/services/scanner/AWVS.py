@@ -113,7 +113,7 @@ class AWVS:
         try:
             data = {
                 "proxy": {
-                    "address": "127.0.0.1",
+                    "address": "172.17.0.1",
                     "enabled": True,
                     "port": port,
                     "protocol": "http"
@@ -125,9 +125,7 @@ class AWVS:
                 json=data,
                 verify=False,
             )
-            if res.status_code >= 200 and res.status_code < 300:
-                TaskLog.add_log(task_id, "INFO", "AWVS设置代理成功")
-            else:
+            if not (res.status_code >= 200 and res.status_code < 300):
                 error_message = f"HTTP {res.status_code}: {res.text}"
                 TaskLog.add_log(task_id, "ERROR", f"AWVS设置代理失败: {error_message}")
         except Exception as e:
@@ -209,7 +207,6 @@ class AWVS:
         try:
             res = self.get_scan(scan_id)
             progress = res.get("current_session", {}).get("progress")
-            print(f"AWVS漏洞详情: {res}")
             session_id = res.get("current_session", {}).get("scan_session_id")
             if (
                 not session_id
@@ -237,7 +234,6 @@ class AWVS:
                     try:
                         num = None
                         for index, sta in enumerate(statisticses):
-                            print(f"{index}: {sta}")
                             if vul.get("vuln_id") == sta.get("vuln_id"):
                                 num = index
                                 break

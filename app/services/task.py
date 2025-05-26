@@ -15,17 +15,6 @@ from app.services.scanner.AWVS import AWVS
 from celery.result import AsyncResult
 
 class TaskService:
-    xray = None  # 类变量
-    
-    @classmethod
-    def init_xray(cls, app):
-        """初始化Xray扫描器"""
-        if cls.xray is None:
-            cls.xray = Xray(
-                xray_path=app.config["XRAY_PATH"],
-                output_dir=app.config["XRAY_OUTPUT_PATH"]
-            )
-
     @staticmethod
     def create_task(user_id: int, task_name: str, target_url: str, scan_type: str, login_url, login_username, login_password):
         # 创建任务记录
@@ -175,15 +164,21 @@ class TaskService:
             task_group_list = []
             awvs = AWVS()
             if task.scan_type == "full":
-                # 使用类变量xray
-                if not TaskService.xray:
-                    raise InternalServerError("Xray扫描器未初始化")
-                proxy_port = TaskService.xray.start_scan(task_id)
+                xray = Xray(
+                    xray_path=current_app.config["XRAY_PATH"],
+                    output_dir=current_app.config["XRAY_OUTPUT_PATH"]
+                )
+                proxy_port = xray.start_scan(task_id)
+                
                 task.xray_port = proxy_port
-
+                
+                if not TaskService.wait_for_port(proxy_port):
+                    TaskLog.add_log(task_id, "ERROR", "Xray代理启动超时")
+                    raise InternalServerError("Xray代理未就绪")
+                
                 awvs.set_proxy(task.task_id, task.awvs_id, proxy_port)
-                task_group_list.append(save_xray_vuls.s(task_id))
-            else: TaskLog.add_log(task_id, "INFO", "该扫描类型不启动Xray")
+            else: 
+                TaskLog.add_log(task_id, "INFO", "该扫描类型不启动Xray")
 
             awvs_scan_id = awvs.start_scan(task_id, task.awvs_id, task.scan_type)
             if awvs_scan_id:
@@ -209,6 +204,20 @@ class TaskService:
             TaskLog.add_log(task_id, "ERROR", f"启动扫描任务失败：{str(e)}")
             TaskService.stop_scan_task(task_id)
             raise InternalServerError(f"启动扫描任务失败: {str(e)}")
+        
+    @staticmethod
+    def wait_for_port(port, timeout=100):
+        """等待指定端口可用"""
+        import socket
+        import time
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(1)
+                if s.connect_ex(('172.17.0.1', port)) == 0:
+                    return True
+            time.sleep(1)
+        return False
 
     @staticmethod
     def stop_scan_task(task_id: int):
@@ -216,39 +225,36 @@ class TaskService:
             raise Forbidden("无权限操作此任务")
 
         task = ScanTask.query.get(task_id)
+
+        if task.status == "pending":
+            raise ValidationError("任务未在运行中")
+    
+        if task.celery_group_id:
+            group_result = AsyncResult(task.celery_group_id)
+            group_result.revoke(terminate=True, signal='SIGTERM')
+        if task.celery_task_ids:
+            for tid in task.celery_task_ids:
+                AsyncResult(tid).revoke(terminate=True, signal='SIGTERM')
+
         try:
-            if task.status == "pending":
-                raise ValidationError("任务未在运行中")
-
-            if task.celery_group_id:
-                group_result = AsyncResult(task.celery_group_id)
-                group_result.revoke(terminate=True, signal='SIGTERM')
-
-            if task.celery_task_ids:
-                for tid in task.celery_task_ids:
-                    AsyncResult(tid).revoke(terminate=True, signal='SIGTERM')
-
             AWVS().stop_scan(task.awvs_id)
+        except AppException: raise
+        try:
             ZAP().stop_scan(task.zap_id)
-            if TaskService.xray:
-                TaskService.xray.stop_scan(task_id)
+        except AppException: raise
+        try:
+            xray = Xray(
+                xray_path=current_app.config["XRAY_PATH"],
+                output_dir=current_app.config["XRAY_OUTPUT_PATH"]
+            )
+            xray.stop_scan(task_id)
+        except AppException: raise
 
-            task.update_status("completed")
-            task.finished_at = datetime.now()
-            db.session.commit()
-            TaskLog.add_log(task_id, "INFO", "任务已被系统终止")
-            return True
-        except AppException:
-            db.session.rollback()
-            task.update_status("failed")
-            db.session.commit()
-            raise
-        except Exception as e:
-            db.session.rollback()
-            task.update_status("failed")
-            db.session.commit()
-            TaskLog.add_log(task_id, "ERROR", f"停止任务失败: {str(e)}")
-            raise InternalServerError(f"停止任务失败: {str(e)}")
+        task.update_status("completed")
+        task.finished_at = datetime.now()
+        db.session.commit()
+        TaskLog.add_log(task_id, "INFO", "任务已被系统终止")
+        return True
 
     @staticmethod
     def get_running_count() -> int:

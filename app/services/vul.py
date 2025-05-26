@@ -114,14 +114,19 @@ class VulService:
     def _save_results(task_id: int, results: List[Vulnerability]):
         """保存漏洞结果到数据库"""
         try:
-            existing_ids = {
-                sid for (sid,) in db.session.query(Vulnerability.scan_id).filter_by(task_id=task_id).all()
-            }
+            if results[0].scan_source != "XRAY":
+                existing_vuls = db.session.query(Vulnerability).filter_by(task_id=task_id).all()
+                existing_dict = {}
+                for vul in existing_vuls:
+                    if vul.scan_source not in existing_dict:
+                        existing_dict[vul.scan_source] = {}
+                    existing_dict[vul.scan_source][vul.scan_id] = vul
 
-            dedup = VulDeduplicator()
-            unique_results = dedup.get_unique_vulnerabilities(results, existing_ids)
-            
-            db.session.add_all(unique_results)
+                # 初始化去重器并执行去重
+                dedup = VulDeduplicator()
+                unique_results = dedup.deduplicate(results, existing_dict)
+                db.session.add_all(unique_results)
+            db.session.add_all(results)
             db.session.commit()
         except Exception as e:
             db.session.rollback()

@@ -37,10 +37,6 @@ def create_app(name: str = None) -> Flask:
     # 注册蓝图
     register_blueprints(app)
 
-    with app.app_context():
-        from app.services.task import TaskService 
-        TaskService.init_xray(app)
-
     # 设置日志记录器
     setup_logger(app)
 
