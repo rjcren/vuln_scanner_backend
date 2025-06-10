@@ -7,7 +7,7 @@ import subprocess
 import threading
 import socket
 from flask import current_app
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models.task_log import TaskLog
 from app.models.vulnerability import Vulnerability
 from app.services.vul import VulService
@@ -220,7 +220,10 @@ class Xray:
                 vul_type=vuln['plugin'],
                 severity=vuln.get('extra', {}).get('level', 'info').lower()  # 优先使用extra中的level
             )
-            new_vuln.time = datetime.fromtimestamp(vuln['create_time'] / 1000)
+            new_vuln.time = datetime.fromtimestamp(
+                vuln['create_time'] / 1000, 
+                tz=timezone.utc  # 使用UTC时区
+            )
             detail = vuln.get('detail', {})
             snapshot = "\n\n".join(
                 [f"Request:\n{req}\nResponse:\n{resp}" 

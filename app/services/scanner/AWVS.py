@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import os
 from flask import current_app
@@ -256,7 +256,7 @@ class AWVS:
                                 solution=vul_detail.get("recommendation"),
                                 time=datetime.fromisoformat(
                                     statisticses[num].get("time")
-                                ),
+                                ).replace(tzinfo=timezone.utc),  # 确保使用UTC时间
                             )
                         )
                     except Exception as e:

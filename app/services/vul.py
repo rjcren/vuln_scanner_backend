@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from flask import g, render_template
@@ -76,7 +76,7 @@ class VulService:
     def get_latest_alerts(hours: int = 24):
         """获取最近24小时的漏洞告警"""
         try:
-            recent_time = datetime.now() - timedelta(hours=hours)
+            recent_time = datetime.now(timezone.utc) - timedelta(hours=hours)  # 使用UTC时间
             query = Vulnerability.query.join(
                 Vulnerability.task
             ).filter(

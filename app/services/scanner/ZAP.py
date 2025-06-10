@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import os
 import re
@@ -176,7 +176,7 @@ class ZAP:
         severity_map = {
             "0": "info",
             "1": "low",
-            "2": "medium",
+            "2": "medium", 
             "3": "high",
             "4": "critical",
         }
@@ -189,6 +189,7 @@ class ZAP:
                 description=alert.get("description"),
                 details=alert.get("solution"),
                 solution=alert.get("reference"),
-                time=datetime.now(),
+                time=datetime.now().replace(tzinfo=timezone.utc),  # 使用UTC时间
             )
             vul_list.append(vul)
+        return vul_list
