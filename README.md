@@ -138,3 +138,7 @@ vuln_scanner_backend/
 - `/api/v1/vuls/*`: 漏洞管理
 - `/api/v1/reports/*`: 报告管理
 - `/api/v1/feedback/*`: 反馈管理
+
+## 许可证
+
+本项目仅用于学习和研究目的，禁止用于商业用途。

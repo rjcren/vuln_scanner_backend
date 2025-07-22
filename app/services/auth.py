@@ -117,14 +117,18 @@ class AuthService:
             raise InternalServerError(f"密码重置失败: {str(e)}")
 
     @staticmethod
-    def change_account(user_id:str,username: str):
+    def change_account(user_id:str,username: str, email = None):
         try:
             existing_user = User.query.filter(User.username == username).first()
             if existing_user:
                 raise Conflict(f"该用户名已被注册：{username}")
             query = AuthService.get_account(user_id)
             query.username =  username
+            if email:
+                query.email = email
             db.session.commit()
+        except AppException:
+            raise
         except Exception as e:
             db.session.rollback()
             raise InternalServerError(f"修改账号信息失败: {e}")
