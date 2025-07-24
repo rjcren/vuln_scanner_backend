@@ -4,6 +4,8 @@
 
 > 毕业设计项目：基于Flask的Web漏洞扫描平台后端服务，整合了多个开源扫描工具，提供统一的漏洞检测和管理功能。
 
+> 注：处于安全性考量，删除了前后端项目历史提交的证书公钥、私钥和实际环境变量配置，如有需要清自行生成或修改
+
 ## 项目概述
 
 本系统集成Acunetix WVS、OWASP ZAP和Xray三大扫描引擎，实现：
@@ -74,6 +76,8 @@ graph TD
 
 > 后端基于Linux发行版Kali编写，使用Windows可能出现问题
 
+> 请自行安装所集成的安全工具和用于漏洞结果去重的语义模型
+
 1. 克隆项目
 ```bash
 git clone https://github.com/rjcren/vuln_scanner_backend.git
@@ -83,9 +87,7 @@ cd vuln_scanner_backend
 2. 创建虚拟环境
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux
-# 或
-.\venv\Scripts\activate  # Windows
+source venv/bin/activate
 ```
 
 3. 安装依赖
@@ -125,8 +127,10 @@ vuln_scanner_backend/
 │   └── templates/         # 报告模板
 ├── instance/              # 实例配置
 ├── migrations/            # 数据库迁移
-├── tests/                 # 测试用例
-└── app.py                 # 应用入口
+├── scripts/               # 工具启动相关脚本
+├── reports/               # 漏洞报告存放位置
+├── app.py                 # 应用入口
+└── celery_worker.py       # celery入口
 ```
 
 ## API文档
